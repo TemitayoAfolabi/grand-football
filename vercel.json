@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/sync-fixtures",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/calculate-scores",
+      "schedule": "5 */6 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-bonus",
+      "schedule": "30 0 1 * *"
+    },
+    {
+      "path": "/api/cron/close-star-votes",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

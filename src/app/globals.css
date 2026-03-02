@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --accent-glow: rgba(34, 197, 94, 0.25);
+    --gold-glow: rgba(245, 197, 24, 0.3);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-bg-primary text-text-primary antialiased;
+    background-image: radial-gradient(circle at top right, rgba(34, 197, 94, 0.06), transparent 40%);
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent/40 ring-offset-2 ring-offset-bg-primary;
+    border-radius: 0.5rem;
+  }
+
+  /* Tabular numbers for scores and countdowns */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Links: no underline by default */
+  a {
+    text-decoration: none;
+  }
+
+  /* Only underline text links in body content, not nav/buttons */
+  article a:hover,
+  .prose a:hover {
+    text-decoration: underline;
+  }
+
+  /* Minimum touch target for a11y — only on interactive elements */
+  a, button, input, select, textarea {
+    min-height: 44px;
+  }
+
+  /* Labels don't need min-height */
+  label {
+    min-height: auto;
+  }
+}
+
+@layer components {
+  .score-input::-webkit-inner-spin-button,
+  .score-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .score-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Glassmorphism utility */
+  .glass {
+    @apply bg-surface-glass backdrop-blur-xl;
+  }
+
+  @supports not (backdrop-filter: blur()) {
+    .glass {
+      @apply bg-surface;
+    }
+  }
+
+  /* Card gradient background */
+  .card-gradient {
+    background: linear-gradient(160deg, rgba(26, 34, 53, 0.9), #1A2235);
+  }
+
+  /* Featured card glow */
+  .card-featured-glow {
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.28), 0 0 28px rgba(34, 197, 94, 0.2);
+  }
+
+  /* Star card pulse animation */
+  .star-card-pulse {
+    animation: pulse-glow 2.8s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.28), 0 0 28px rgba(34, 197, 94, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4), 0 0 34px rgba(34, 197, 94, 0.3);
+    }
+  }
+
+  /* Hide scrollbar for gameweek selector etc */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Safe area padding for iOS */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Stagger animation delay utilities */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

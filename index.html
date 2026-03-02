@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grand Football UI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <p class="naming-note" role="note">
+      Naming convention: classes use BEM-style blocks and elements (for example, <code>card</code>, <code>card__title</code>) with utility modifiers like <code>is-locked</code> and <code>btn--primary</code>.
+    </p>
+
+    <header class="header shell" id="top">
+      <div class="brand">
+        <span class="brand__logo" aria-hidden="true">⚽</span>
+        <div>
+          <p class="eyebrow">Grand Football</p>
+          <h1>Prediction Center</h1>
+        </div>
+      </div>
+
+      <nav class="top-nav" aria-label="Primary">
+        <a href="#home" aria-current="page">Home</a>
+        <a href="#fixtures">Fixtures</a>
+        <a href="#leaderboard">Leaderboard</a>
+        <a href="#profile">Profile</a>
+      </nav>
+
+      <p class="muted" aria-live="polite">Theme tokens available for dark and light via the data-theme attribute.</p>
+    </header>
+
+    <div class="layout shell">
+      <aside class="sidebar" aria-label="Section navigation">
+        <nav class="side-nav" aria-label="Desktop navigation">
+          <a href="#home" class="side-nav__item side-nav__item--active" aria-current="page">Home Dashboard</a>
+          <a href="#fixtures" class="side-nav__item">Fixtures &amp; Predictions</a>
+          <a href="#leaderboard" class="side-nav__item">Leaderboard</a>
+          <a href="#profile" class="side-nav__item">Profile</a>
+        </nav>
+      </aside>
+
+      <main>
+        <section id="home" class="section">
+          <header class="section__header">
+            <p class="eyebrow">Home Dashboard</p>
+            <h2>Gameweek 18</h2>
+            <p>Track your performance and lock picks before kickoff.</p>
+          </header>
+
+          <div class="grid grid--2">
+            <article class="card card--featured star-card" aria-labelledby="star-match-title">
+              <p class="chip chip--accent">⭐ Star Game</p>
+              <h3 id="star-match-title">Arsenal vs Manchester City</h3>
+              <p class="muted">Bonus points for exact scoreline.</p>
+              <div class="countdown" aria-live="polite">
+                <div class="countdown__unit"><span>01</span><small>Days</small></div>
+                <div class="countdown__unit"><span>08</span><small>Hours</small></div>
+                <div class="countdown__unit"><span>23</span><small>Mins</small></div>
+              </div>
+              <time datetime="2026-03-02T17:30:00Z">Kickoff: Mar 2, 2026 • 17:30 UTC</time>
+              <button class="btn btn--primary" type="button">Submit Predictions</button>
+            </article>
+
+            <aside class="stack" aria-label="Current standing">
+              <article class="card card--standard">
+                <h3>Current Rank</h3>
+                <p class="rank">#12</p>
+                <p class="trend trend--up">↑ Up 3 from last gameweek</p>
+              </article>
+
+              <article class="card card--compact">
+                <h3>Top 5 Mini Leaderboard</h3>
+                <ol class="mini-board">
+                  <li><span class="chip chip--podium">1st</span> Ada M. — 218 pts</li>
+                  <li><span class="chip chip--podium">2nd</span> Theo R. — 211 pts</li>
+                  <li><span class="chip chip--podium">3rd</span> Sam K. — 209 pts</li>
+                  <li>4th Priya D. — 201 pts</li>
+                  <li>5th You — 198 pts</li>
+                </ol>
+              </article>
+            </aside>
+          </div>
+        </section>
+
+        <section id="fixtures" class="section">
+          <header class="section__header">
+            <p class="eyebrow">Fixtures &amp; Predictions</p>
+            <h2>Set Scores</h2>
+            <p>Use score steppers and save before lock time.</p>
+          </header>
+
+          <article class="card card--standard fixture-card">
+            <div class="fixture-card__head">
+              <div class="fixture-card__teams">
+                <span class="team-logo" aria-hidden="true">LIV</span>
+                <h3>Liverpool vs Chelsea</h3>
+                <span class="team-logo" aria-hidden="true">CHE</span>
+              </div>
+              <p>
+                <span class="chip chip--open" aria-label="Status open">Open • Editable</span>
+              </p>
+            </div>
+            <form class="prediction-form" action="#" method="post">
+              <div class="score-stepper" role="group" aria-label="Home score">
+                <label for="liverpool-score">Liverpool goals</label>
+                <div class="stepper-control">
+                  <button class="btn btn--ghost" type="button" aria-label="Decrease Liverpool score">−</button>
+                  <input id="liverpool-score" name="liverpool-score" type="number" min="0" max="99" inputmode="numeric" pattern="[0-9]*" value="2" />
+                  <button class="btn btn--ghost" type="button" aria-label="Increase Liverpool score">+</button>
+                </div>
+              </div>
+
+              <div class="score-stepper" role="group" aria-label="Away score">
+                <label for="chelsea-score">Chelsea goals</label>
+                <div class="stepper-control">
+                  <button class="btn btn--ghost" type="button" aria-label="Decrease Chelsea score">−</button>
+                  <input id="chelsea-score" name="chelsea-score" type="number" min="0" max="99" inputmode="numeric" pattern="[0-9]*" value="1" />
+                  <button class="btn btn--ghost" type="button" aria-label="Increase Chelsea score">+</button>
+                </div>
+              </div>
+
+              <div class="button-row">
+                <button class="btn btn--secondary" type="submit">Save Prediction</button>
+                <button class="btn btn--loading" type="button" aria-live="polite" aria-label="Saving prediction">Saving</button>
+              </div>
+            </form>
+            <p class="saved-feedback" role="status">✓ Saved at 14:06 — prediction recorded successfully.</p>
+          </article>
+
+          <article class="card card--standard fixture-card is-locked" aria-label="Locked fixture">
+            <div class="fixture-card__head">
+              <div class="fixture-card__teams">
+                <span class="team-logo" aria-hidden="true">TOT</span>
+                <h3>Tottenham vs Newcastle</h3>
+                <span class="team-logo" aria-hidden="true">NEW</span>
+              </div>
+              <p><span class="chip chip--locked" aria-label="Status locked">Locked • Read-only</span></p>
+            </div>
+            <form class="prediction-form" action="#" method="post">
+              <div class="score-stepper" role="group" aria-label="Locked home score">
+                <label for="tottenham-score">Tottenham goals</label>
+                <div class="stepper-control">
+                  <button class="btn btn--ghost" type="button" disabled aria-label="Locked decrease">−</button>
+                  <input id="tottenham-score" name="tottenham-score" type="number" min="0" max="99" inputmode="numeric" pattern="[0-9]*" value="1" readonly />
+                  <button class="btn btn--ghost" type="button" disabled aria-label="Locked increase">+</button>
+                </div>
+              </div>
+              <div class="score-stepper" role="group" aria-label="Locked away score">
+                <label for="newcastle-score">Newcastle goals</label>
+                <div class="stepper-control">
+                  <button class="btn btn--ghost" type="button" disabled aria-label="Locked decrease">−</button>
+                  <input id="newcastle-score" name="newcastle-score" type="number" min="0" max="99" inputmode="numeric" pattern="[0-9]*" value="1" readonly />
+                  <button class="btn btn--ghost" type="button" disabled aria-label="Locked increase">+</button>
+                </div>
+              </div>
+            </form>
+            <p class="muted">Submissions closed 00:14 ago.</p>
+          </article>
+
+          <article class="card card--compact fixture-card">
+            <div class="fixture-card__head">
+              <div class="fixture-card__teams">
+                <span class="team-logo" aria-hidden="true">BHA</span>
+                <h3>Brighton vs West Ham</h3>
+                <span class="team-logo" aria-hidden="true">WHU</span>
+              </div>
+              <p><span class="chip chip--finished" aria-label="Status finished">Finished • Finalized</span></p>
+            </div>
+            <p class="muted">Result: 2 - 2 • You earned 1 outcome point.</p>
+          </article>
+
+          <section class="section section--nested" aria-labelledby="match-detail-title">
+            <header class="section__header">
+              <p class="eyebrow">Match Detail</p>
+              <h3 id="match-detail-title">Liverpool vs Chelsea Breakdown</h3>
+            </header>
+            <article class="card card--standard">
+              <p><strong>Venue:</strong> Anfield</p>
+              <p><strong>Referee:</strong> M. Oliver</p>
+              <p><strong>Form:</strong> LIV WWWDW • CHE WDLWW</p>
+              <div class="match-detail-grid" role="list" aria-label="Scoring breakdown">
+                <p role="listitem"><strong>Actual score:</strong> Liverpool 2 - 1 Chelsea</p>
+                <p role="listitem"><strong>User prediction:</strong> Liverpool 2 - 1 Chelsea</p>
+                <p role="listitem"><strong>Points awarded:</strong> 6 points</p>
+              </div>
+              <div class="reason-badges" aria-label="Points reason badges">
+                <span class="chip">Exact Score</span>
+                <span class="chip">Correct Outcome</span>
+                <span class="chip">BTTS Reverse</span>
+                <span class="chip">0 points</span>
+              </div>
+              <p class="chip chip--accent">⭐ Star Game x2</p>
+              <div class="skeleton" aria-hidden="true"></div>
+            </article>
+          </section>
+        </section>
+
+        <section id="leaderboard" class="section">
+          <header class="section__header">
+            <p class="eyebrow">Leaderboard</p>
+            <h2>Season Standings</h2>
+            <div class="toggle" role="group" aria-label="Leaderboard period">
+              <button class="btn btn--secondary" type="button" aria-pressed="true">Season</button>
+              <button class="btn btn--ghost" type="button" aria-pressed="false">Month</button>
+            </div>
+          </header>
+
+          <article class="card card--standard">
+            <div class="podium-row" aria-label="Top 3 podium chips">
+              <span class="chip chip--podium">🥇 Ada M.</span>
+              <span class="chip chip--podium">🥈 Theo R.</span>
+              <span class="chip chip--podium">🥉 Sam K.</span>
+            </div>
+
+            <div class="table-wrap">
+              <table aria-label="Season leaderboard standings">
+                <caption class="sr-only">Leaderboard table</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Player</th>
+                    <th scope="col">Points</th>
+                    <th scope="col">Exact Scores</th>
+                    <th scope="col">Outcomes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Ada M.</td>
+                    <td>218</td>
+                    <td>16</td>
+                    <td>33</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Theo R.</td>
+                    <td>211</td>
+                    <td>14</td>
+                    <td>34</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Sam K.</td>
+                    <td>209</td>
+                    <td>13</td>
+                    <td>35</td>
+                  </tr>
+                  <tr class="current-user" aria-current="true">
+                    <td>5</td>
+                    <td>You</td>
+                    <td>198</td>
+                    <td>11</td>
+                    <td>30</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>Chris J.</td>
+                    <td>196</td>
+                    <td>10</td>
+                    <td>31</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="profile" class="section">
+          <header class="section__header">
+            <p class="eyebrow">Profile</p>
+            <h2>Player Snapshot</h2>
+          </header>
+
+          <article class="card card--standard profile-card">
+            <div class="profile-head">
+              <div class="avatar" aria-hidden="true">TA</div>
+              <div>
+                <h3>Temitayo Afolabi</h3>
+                <p class="muted">Joined Aug 2025 • Pro Predictor</p>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <article class="card card--compact">
+                <h4>Exact Scores</h4>
+                <p class="stat">11</p>
+              </article>
+              <article class="card card--compact">
+                <h4>Outcomes</h4>
+                <p class="stat">30</p>
+              </article>
+              <article class="card card--compact">
+                <h4>Best Month</h4>
+                <p class="stat">Jan • 42 pts</p>
+              </article>
+            </div>
+
+            <div class="sparkline" role="img" aria-label="Recent weekly points trend placeholder"></div>
+            <div class="button-row">
+              <button class="btn btn--primary" type="button">Edit Profile</button>
+              <button class="btn btn--disabled" type="button" disabled>Syncing</button>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Mobile tabs">
+      <a href="#home" class="bottom-nav__item" aria-current="page">Home</a>
+      <a href="#fixtures" class="bottom-nav__item">Fixtures</a>
+      <a href="#leaderboard" class="bottom-nav__item">Leaderboard</a>
+      <a href="#profile" class="bottom-nav__item">Profile</a>
+    </nav>
+
+    <footer class="footer shell">
+      <p>Grand Football • Prediction UI demo • Accessible, no-script prototype</p>
+    </footer>
+  </body>
+</html>
