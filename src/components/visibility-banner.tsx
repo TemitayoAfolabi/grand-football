@@ -22,7 +22,11 @@ export function VisibilityBanner({
       <div className="flex items-center gap-2 rounded-card border border-success/20 bg-success/10 px-4 py-3">
         <Eye className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
         <p className="text-body-sm text-success">
-          Everyone&apos;s predictions are now visible.
+          {isOwnProfile
+            ? "Everyone\u2019s predictions are now visible."
+            : firstKickoff && new Date(firstKickoff) > new Date()
+              ? "You\u2019ve locked in your predictions \u2014 here\u2019s what everyone else predicted!"
+              : "Everyone\u2019s predictions are now visible."}
         </p>
       </div>
     );
@@ -34,14 +38,14 @@ export function VisibilityBanner({
         <EyeOff className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
         <div className="flex-1">
           <p className="text-body-sm font-medium text-warning">
-            Predictions hidden until kickoff
+            Predictions hidden until you submit yours
           </p>
           <p className="mt-0.5 text-caption text-warning/80">
-            Since you&apos;ve submitted yours, others stay hidden to keep it fair.
+            Submit your predictions first to see what others predicted.
             {firstKickoff && (
               <>
                 {' '}
-                Reveals in <Countdown targetDate={firstKickoff} />
+                Kickoff in <Countdown targetDate={firstKickoff} />
               </>
             )}
           </p>

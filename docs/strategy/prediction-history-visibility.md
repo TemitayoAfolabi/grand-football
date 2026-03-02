@@ -35,10 +35,10 @@ Enable full prediction history visibility across all users, with a carefully des
 
 ### Anti-Spoiler Rationale
 
-The visibility rule for the current gameweek before kickoff is designed to prevent "spoiler" advantages:
+The visibility rule for the current gameweek before kickoff is designed to prevent copying:
 
-- **User who HAS submitted predictions:** Cannot see others' predictions before kickoff. This prevents regret-driven attempts to change strategy after seeing what others predicted.
-- **User who has NOT submitted predictions:** Can see others' predictions freely. Since those other users have already committed their predictions and cannot change them, no competitive advantage is gained.
+- **User who HAS submitted predictions:** CAN see others' predictions before kickoff. They have already committed their own predictions and cannot change them, so no competitive advantage is gained.
+- **User who has NOT submitted predictions:** CANNOT see others' predictions before kickoff. This prevents users from copying or being influenced by others' predictions before committing their own.
 - **After kickoff:** All predictions are visible to everyone, as no changes are possible.
 
 ---
@@ -51,8 +51,8 @@ The visibility anchor is the **kickoff timestamp of the first non-postponed/non-
 |----------|---------------|-------------|-------------------|----------|
 | A | Past GW (first kickoff has passed) | Any user | Any user's predictions | **Yes** |
 | B | Current GW, **after** first kickoff | Any user | Any user's predictions | **Yes** |
-| C | Current GW, **before** first kickoff | User has **NOT** submitted predictions for this GW | Other users' predictions | **Yes** |
-| D | Current GW, **before** first kickoff | User **HAS** submitted predictions for this GW | Other users' predictions | **No** |
+| C | Current GW, **before** first kickoff | User has **NOT** submitted predictions for this GW | Other users' predictions | **No** |
+| D | Current GW, **before** first kickoff | User **HAS** submitted predictions for this GW | Other users' predictions | **Yes** |
 | E | Current GW, **before** first kickoff | Any user | Their **own** predictions | **Yes** (always) |
 | F | Future GW (no fixtures kicked off, not the current displayed GW) | Any user | Other users' predictions | **No** |
 
