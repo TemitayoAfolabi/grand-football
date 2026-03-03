@@ -30,26 +30,53 @@ export async function submitPrediction(
   const { fixtureId, homeScore, awayScore } = parsed.data;
 
   // Check if fixture is still open
-  const { data: isOpen } = await supabase.rpc('is_fixture_open', {
+  const { data: isOpen, error: rpcError } = await supabase.rpc('is_fixture_open', {
     p_fixture_id: fixtureId,
   });
+
+  if (rpcError) {
+    console.error('[submitPrediction] is_fixture_open RPC failed:', JSON.stringify(rpcError));
+    return { error: 'Failed to save prediction. Please try again.' };
+  }
 
   if (!isOpen) {
     return { error: 'This fixture is locked. Predictions are no longer accepted.' };
   }
 
-  // Upsert the prediction
-  const { error: dbError } = await supabase.from('predictions').upsert(
-    {
-      user_id: user.id,
-      fixture_id: fixtureId,
-      home_score: homeScore,
-      away_score: awayScore,
-    },
-    { onConflict: 'user_id,fixture_id' },
-  );
+  // Check if a prediction already exists (avoids upsert RLS issues)
+  const { data: existing } = await supabase
+    .from('predictions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('fixture_id', fixtureId)
+    .maybeSingle();
+
+  let dbError;
+
+  if (existing) {
+    // UPDATE existing prediction
+    ({ error: dbError } = await supabase
+      .from('predictions')
+      .update({
+        home_score: homeScore,
+        away_score: awayScore,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id));
+  } else {
+    // INSERT new prediction
+    ({ error: dbError } = await supabase
+      .from('predictions')
+      .insert({
+        user_id: user.id,
+        fixture_id: fixtureId,
+        home_score: homeScore,
+        away_score: awayScore,
+      }));
+  }
 
   if (dbError) {
+    console.error('[submitPrediction] DB error:', JSON.stringify(dbError));
     return { error: 'Failed to save prediction. Please try again.' };
   }
 
