@@ -1,7 +1,7 @@
 // Grand Football — Service Worker
 // Enables PWA install prompt and basic offline support
-
-const CACHE_NAME = 'grand-football-v1';
+// Cache version — bump this string on every deployment to bust stale caches
+const CACHE_NAME = 'grand-football-v2';
 
 // Shell assets to pre-cache on install
 const PRECACHE_URLS = [
