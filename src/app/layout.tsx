@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { ServiceWorkerRegistration } from '@/components/service-worker-registration';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -20,6 +21,13 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Grand Football',
+    startupImage: [
+      { url: '/icons/icon-512x512.png' },
+    ],
+  },
+  icons: {
+    apple: '/icons/icon-192x192.png',
+    icon: '/icons/icon-192x192.png',
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -38,7 +46,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
       <head />
-      <body className="min-h-screen font-sans">{children}</body>
+      <body className="min-h-screen font-sans">
+        <ServiceWorkerRegistration />
+        {children}
+      </body>
     </html>
   );
 }

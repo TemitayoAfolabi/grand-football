@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Calendar, Trophy, Star, Award } from 'lucide-react';
+import { Home, Calendar, Trophy, Star, Award, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Route } from 'next';
 
-const items: { href: Route; label: string; Icon: typeof Home }[] = [
+const baseItems: { href: Route; label: string; Icon: typeof Home }[] = [
   { href: '/' as Route, label: 'Home', Icon: Home },
   { href: '/fixtures' as Route, label: 'Fixtures', Icon: Calendar },
   { href: '/star-man' as Route, label: 'Star Man', Icon: Star },
@@ -14,8 +14,15 @@ const items: { href: Route; label: string; Icon: typeof Home }[] = [
   { href: '/badges' as Route, label: 'Badges', Icon: Award },
 ];
 
-export function BottomNav() {
+const adminItem = { href: '/admin' as Route, label: 'Admin', Icon: Shield };
+
+interface BottomNavProps {
+  isAdmin?: boolean;
+}
+
+export function BottomNav({ isAdmin = false }: BottomNavProps) {
   const pathname = usePathname();
+  const items = isAdmin ? [...baseItems, adminItem] : baseItems;
 
   return (
     <nav
@@ -30,14 +37,15 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  'relative flex flex-col items-center gap-1 rounded-input border border-transparent px-2 py-3 text-nav transition-all duration-200',
+                  'relative flex flex-col items-center gap-0.5 rounded-input border border-transparent py-2.5 text-nav transition-all duration-200',
+                  isAdmin ? 'px-1' : 'px-2',
                   isActive
                     ? 'bg-accent/10 border-accent/30 text-accent font-bold'
                     : 'text-text-tertiary hover:text-text-secondary hover:border-border hover:bg-surface-elevated/50',
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
-                <Icon className="h-5 w-5" aria-hidden="true" />
+                <Icon className={cn('h-5 w-5', isAdmin && 'h-4 w-4')} aria-hidden="true" />
                 <span>{label}</span>
                 {isActive && (
                   <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent" aria-hidden="true" />
