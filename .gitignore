@@ -42,6 +42,7 @@ next-env.d.ts
 
 # Agent
 .agent/
+.github/agents/
 
 # Vercel
 .vercel
