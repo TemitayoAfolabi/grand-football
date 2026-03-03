@@ -25,7 +25,7 @@ export default async function AuthenticatedLayout({
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-4 tablet:pb-8 tablet:pt-6">
         {children}
       </main>
-      <BottomNav />
+      <BottomNav isAdmin={!!isAdmin} />
     </div>
   );
 }

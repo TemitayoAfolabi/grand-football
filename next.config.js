@@ -21,6 +21,14 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Service worker must be served with correct scope header
+        source: "/sw.js",
+        headers: [
+          { key: "Service-Worker-Allowed", value: "/" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
+      {
         source: "/(.*)",
         headers: [
           {
@@ -56,6 +64,7 @@ const nextConfig = {
               "img-src 'self' data: https:",
               "font-src 'self' https://fonts.gstatic.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+              "worker-src 'self'",
               "frame-ancestors 'none'",
             ].join("; "),
           },
