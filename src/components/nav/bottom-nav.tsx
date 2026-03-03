@@ -9,7 +9,7 @@ import type { Route } from 'next';
 const baseItems: { href: Route; label: string; Icon: typeof Home }[] = [
   { href: '/' as Route, label: 'Home', Icon: Home },
   { href: '/fixtures' as Route, label: 'Fixtures', Icon: Calendar },
-  { href: '/star-man' as Route, label: 'Star Man', Icon: Star },
+  { href: '/star-man' as Route, label: 'Star', Icon: Star },
   { href: '/leaderboard' as Route, label: 'Board', Icon: Trophy },
   { href: '/badges' as Route, label: 'Badges', Icon: Award },
 ];
@@ -46,7 +46,7 @@ export function BottomNav({ isAdmin = false }: BottomNavProps) {
                 aria-current={isActive ? 'page' : undefined}
               >
                 <Icon className={cn('h-5 w-5', isAdmin && 'h-4 w-4')} aria-hidden="true" />
-                <span>{label}</span>
+                <span className="whitespace-nowrap">{label}</span>
                 {isActive && (
                   <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent" aria-hidden="true" />
                 )}
