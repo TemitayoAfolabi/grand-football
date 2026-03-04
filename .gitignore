@@ -17,6 +17,9 @@ coverage/
 .env.test.local
 .env.production.local
 
+# Supabase cron setup (contains real secrets when filled in)
+supabase/cron-jobs.example.sql
+
 # Supabase
 supabase/.temp/
 
