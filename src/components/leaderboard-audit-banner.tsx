@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
 
 interface LeaderboardEdit {
   id: string;
@@ -27,10 +27,15 @@ interface LeaderboardAuditBannerProps {
   seasonId: string;
 }
 
+function dismissKey(seasonId: string, latestEditId: string) {
+  return `leaderboard-audit-dismissed:${seasonId}:${latestEditId}`;
+}
+
 export function LeaderboardAuditBanner({ seasonId }: LeaderboardAuditBannerProps) {
   const [edits, setEdits] = useState<LeaderboardEdit[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const supabase = createClient();
 
@@ -49,14 +54,37 @@ export function LeaderboardAuditBanner({ seasonId }: LeaderboardAuditBannerProps
           return nv?.season_id === seasonId;
         }) as LeaderboardEdit[];
         setEdits(filtered);
+
+        // Check if the user has already dismissed this set of corrections
+        const latest = filtered[0];
+        if (latest) {
+          const key = dismissKey(seasonId, latest.id);
+          setDismissed(localStorage.getItem(key) === 'true');
+        }
+
         setLoaded(true);
       });
   }, [seasonId, supabase, loaded]);
 
-  if (!loaded || edits.length === 0) return null;
+  function handleDismiss() {
+    const latest = edits[0];
+    if (latest) {
+      localStorage.setItem(dismissKey(seasonId, latest.id), 'true');
+    }
+    setDismissed(true);
+  }
+
+  if (!loaded || edits.length === 0 || dismissed) return null;
 
   return (
-    <Alert variant="info" title="Leaderboard Corrections">
+    <Alert variant="info" title="Leaderboard Corrections" className="relative">
+      <button
+        onClick={handleDismiss}
+        aria-label="Dismiss leaderboard corrections notification"
+        className="absolute right-3 top-3 rounded p-0.5 text-info/60 hover:bg-info/10 hover:text-info transition-colors"
+      >
+        <X className="h-4 w-4" />
+      </button>
       <div className="space-y-2">
         <p>
           {edits.length} score correction{edits.length !== 1 ? 's have' : ' has'} been made this

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Shield, Users, Calendar, Calculator, LayoutDashboard, Trophy, Star, BarChart3 } from 'lucide-react';
+import { Shield, Users, Calendar, Calculator, LayoutDashboard, Trophy, Star, BarChart3, ClipboardList } from 'lucide-react';
 import type { Route } from 'next';
 
 const adminNavItems: { href: Route; label: string; icon: typeof LayoutDashboard }[] = [
@@ -11,6 +11,7 @@ const adminNavItems: { href: Route; label: string; icon: typeof LayoutDashboard 
   { href: '/admin/fixtures' as Route, label: 'Fixtures', icon: Calendar },
   { href: '/admin/scoring' as Route, label: 'Scoring', icon: Calculator },
   { href: '/admin/leaderboard' as Route, label: 'Leaderboard', icon: BarChart3 },
+  { href: '/admin/predictions' as Route, label: 'Predictions', icon: ClipboardList },
   { href: '/admin/season' as Route, label: 'Season', icon: Trophy },
   { href: '/admin/star-man' as Route, label: 'Star Man', icon: Star },
 ];

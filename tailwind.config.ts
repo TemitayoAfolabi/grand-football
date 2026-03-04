@@ -88,49 +88,49 @@ const config: Config = {
       },
       fontSize: {
         display: [
-          '40px',
+          '35px',
           { lineHeight: '1.0', fontWeight: '800', letterSpacing: '-0.02em' },
         ],
         h1: [
-          '28px',
+          '23px',
           { lineHeight: '1.15', fontWeight: '700', letterSpacing: '-0.01em' },
         ],
         h2: [
-          '22px',
+          '17px',
           { lineHeight: '1.2', fontWeight: '700', letterSpacing: '-0.01em' },
         ],
-        h3: ['18px', { lineHeight: '1.3', fontWeight: '600' }],
-        body: ['15px', { lineHeight: '1.6', fontWeight: '400' }],
-        'body-sm': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+        h3: ['13px', { lineHeight: '1.3', fontWeight: '600' }],
+        body: ['10px', { lineHeight: '1.6', fontWeight: '400' }],
+        'body-sm': ['8px', { lineHeight: '1.5', fontWeight: '400' }],
         caption: [
-          '12px',
+          '7px',
           { lineHeight: '1.4', fontWeight: '500', letterSpacing: '0.02em' },
         ],
         score: [
-          '36px',
+          '31px',
           { lineHeight: '1.0', fontWeight: '800', letterSpacing: '-0.02em' },
         ],
         rank: [
-          '24px',
+          '19px',
           { lineHeight: '1.0', fontWeight: '800', letterSpacing: '-0.01em' },
         ],
-        stat: ['20px', { lineHeight: '1.1', fontWeight: '700' }],
+        stat: ['15px', { lineHeight: '1.1', fontWeight: '700' }],
         'stat-label': [
-          '12px',
+          '7px',
           { lineHeight: '1.4', fontWeight: '500', letterSpacing: '0.05em' },
         ],
         nav: [
-          '12px',
+          '7px',
           { lineHeight: '1.2', fontWeight: '500', letterSpacing: '0.02em' },
         ],
         countdown: [
-          '14px',
+          '9px',
           { lineHeight: '1.0', fontWeight: '600', letterSpacing: '0.05em' },
         ],
-        'score-mobile': ['32px', { lineHeight: '1.1', fontWeight: '700' }],
-        'score-desktop': ['40px', { lineHeight: '1.1', fontWeight: '700' }],
-        'rank-mobile': ['20px', { lineHeight: '1.1', fontWeight: '700' }],
-        'rank-desktop': ['24px', { lineHeight: '1.1', fontWeight: '700' }],
+        'score-mobile': ['27px', { lineHeight: '1.1', fontWeight: '700' }],
+        'score-desktop': ['35px', { lineHeight: '1.1', fontWeight: '700' }],
+        'rank-mobile': ['15px', { lineHeight: '1.1', fontWeight: '700' }],
+        'rank-desktop': ['19px', { lineHeight: '1.1', fontWeight: '700' }],
       },
 
       // -----------------------------------------------------------------------
