@@ -42,7 +42,7 @@ interface PredictionEntry {
 }
 
 interface PredictionHistoryResponse {
-  visibility: 'visible' | 'hidden' | 'own_only';
+  visibility: 'visible' | 'hidden' | 'own_only' | 'partial';
   firstKickoff: string | null;
   viewerHasPredicted: boolean;
   predictions: PredictionEntry[];
@@ -210,7 +210,7 @@ export function PredictionHistoryView({
       {!isPending && data && (
         <>
           {/* Summary strip */}
-          {(data.visibility === 'visible' || isOwnProfile) && (
+          {(data.visibility === 'visible' || data.visibility === 'partial' || isOwnProfile) && (
             <PredictionSummaryStrip
               totalPoints={totalPoints}
               totalPredictions={totalPredictions}
