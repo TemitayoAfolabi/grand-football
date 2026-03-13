@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// Allow dynamic but with short cache for live data
 export const dynamic = 'force-dynamic';
 
 /**
@@ -26,7 +27,14 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (!season) {
-    return NextResponse.json({ fixtures: [] });
+    return NextResponse.json(
+      { fixtures: [] },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   }
 
   const gameweekParam = request.nextUrl.searchParams.get('gameweek');
@@ -54,5 +62,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ fixtures: fixtures ?? [] });
+  // Short cache for live data - 10 seconds server cache, 30 seconds stale-while-revalidate
+  return NextResponse.json(
+    { fixtures: fixtures ?? [] },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
+      },
+    }
+  );
 }

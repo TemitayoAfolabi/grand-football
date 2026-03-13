@@ -9,6 +9,12 @@ import { LiveMatchesSection } from '@/components/live-matches-section';
 import { Suspense } from 'react';
 import { Trophy, TrendingUp, Calendar, ChevronRight, Target, Award } from 'lucide-react';
 import Link from 'next/link';
+import {
+  getCachedUser,
+  getCachedActiveSeason,
+  getCachedLeaderboard,
+  getCachedProfile,
+} from '@/lib/server/cached-queries';
 
 export const metadata = {
   title: 'Dashboard',
@@ -16,17 +22,14 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  
+  // Use cached queries for user and season - these may already be fetched by layout
+  const [user, season] = await Promise.all([
+    getCachedUser(),
+    getCachedActiveSeason(),
+  ]);
+  
   const userId = user!.id;
-
-  // Get active season
-  const { data: season } = await supabase
-    .from('seasons')
-    .select('*')
-    .eq('is_active', true)
-    .single();
 
   if (!season) {
     return (
@@ -40,52 +43,7 @@ export default async function DashboardPage() {
     );
   }
 
-  // Get leaderboard to find user rank
-  const { data: leaderboard } = await supabase.rpc('get_season_leaderboard', {
-    p_season_id: season.id,
-  });
-
-  const userEntry = leaderboard?.find((e) => e.user_id === userId);
-
-  // Get upcoming fixtures
-  const { data: upcomingFixtures } = await supabase
-    .from('fixtures')
-    .select('*')
-    .eq('season_id', season.id)
-    .in('status', ['SCHEDULED', 'TIMED'])
-    .order('kickoff_time', { ascending: true })
-    .limit(5);
-
-  // Get user predictions for upcoming fixtures
-  const upcomingIds = upcomingFixtures?.map((f) => f.id) ?? [];
-  const { data: upcomingPredictions } = upcomingIds.length
-    ? await supabase
-        .from('predictions')
-        .select('*')
-        .eq('user_id', userId)
-        .in('fixture_id', upcomingIds)
-    : { data: [] };
-
-  // Get recent results
-  const { data: recentFixtures } = await supabase
-    .from('fixtures')
-    .select('*')
-    .eq('season_id', season.id)
-    .eq('status', 'FINISHED')
-    .order('kickoff_time', { ascending: false })
-    .limit(5);
-
-  // Get score records for recent results
-  const recentIds = recentFixtures?.map((f) => f.id) ?? [];
-  const { data: recentScores } = recentIds.length
-    ? await supabase
-        .from('score_records')
-        .select('*')
-        .eq('user_id', userId)
-        .in('fixture_id', recentIds)
-    : { data: [] };
-
-  // Monthly bonus progress
+  // Calculate month boundaries once
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
@@ -94,67 +52,117 @@ export default async function DashboardPage() {
     .toISOString()
     .split('T')[0]!;
 
-  const { count: monthFixtures } = await supabase
-    .from('fixtures')
-    .select('id', { count: 'exact', head: true })
-    .eq('season_id', season.id)
-    .gte('kickoff_time', monthStart)
-    .lt('kickoff_time', monthEnd);
+  // Parallelize ALL independent queries - this is the biggest performance win
+  const [
+    leaderboard,
+    upcomingFixtures,
+    recentFixtures,
+    profile,
+    badgeResult,
+    liveFixtures,
+    monthFixturesResult,
+    monthFixtureIds,
+  ] = await Promise.all([
+    // Cached leaderboard RPC
+    getCachedLeaderboard(season.id),
+    // Upcoming fixtures
+    supabase
+      .from('fixtures')
+      .select('*')
+      .eq('season_id', season.id)
+      .in('status', ['SCHEDULED', 'TIMED'])
+      .order('kickoff_time', { ascending: true })
+      .limit(5),
+    // Recent results
+    supabase
+      .from('fixtures')
+      .select('*')
+      .eq('season_id', season.id)
+      .eq('status', 'FINISHED')
+      .order('kickoff_time', { ascending: false })
+      .limit(5),
+    // User profile (cached)
+    getCachedProfile(userId),
+    // Badge count
+    supabase
+      .from('user_badges')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId),
+    // Live fixtures
+    supabase
+      .from('fixtures')
+      .select('*')
+      .eq('season_id', season.id)
+      .in('status', ['IN_PLAY', 'PAUSED'])
+      .order('kickoff_time', { ascending: true }),
+    // Month fixtures count
+    supabase
+      .from('fixtures')
+      .select('id', { count: 'exact', head: true })
+      .eq('season_id', season.id)
+      .gte('kickoff_time', monthStart)
+      .lt('kickoff_time', monthEnd),
+    // Month fixture IDs for prediction count
+    supabase
+      .from('fixtures')
+      .select('id')
+      .eq('season_id', season.id)
+      .gte('kickoff_time', monthStart)
+      .lt('kickoff_time', monthEnd),
+  ]);
 
-  const { count: monthPredictions } = await supabase
-    .from('predictions')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .in(
-      'fixture_id',
-      (
-        await supabase
-          .from('fixtures')
-          .select('id')
-          .eq('season_id', season.id)
-          .gte('kickoff_time', monthStart)
-          .lt('kickoff_time', monthEnd)
-      ).data?.map((f) => f.id) ?? [],
-    );
+  const userEntry = leaderboard?.find((e) => e.user_id === userId);
+  const badgeCount = badgeResult.count;
+  const monthFixtures = monthFixturesResult.count;
 
-  // Username for greeting
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name')
-    .eq('id', userId)
-    .single();
+  // Get IDs for dependent queries
+  const upcomingIds = upcomingFixtures.data?.map((f) => f.id) ?? [];
+  const recentIds = recentFixtures.data?.map((f) => f.id) ?? [];
+  const liveIds = liveFixtures.data?.map((f) => f.id) ?? [];
+  const monthIds = monthFixtureIds.data?.map((f) => f.id) ?? [];
 
+  // Second batch of parallel queries (depend on first batch results)
+  const [upcomingPredictions, recentScores, livePredictions, monthPredictionsResult] = await Promise.all([
+    upcomingIds.length
+      ? supabase
+          .from('predictions')
+          .select('*')
+          .eq('user_id', userId)
+          .in('fixture_id', upcomingIds)
+      : Promise.resolve({ data: [] }),
+    recentIds.length
+      ? supabase
+          .from('score_records')
+          .select('*')
+          .eq('user_id', userId)
+          .in('fixture_id', recentIds)
+      : Promise.resolve({ data: [] }),
+    liveIds.length
+      ? supabase
+          .from('predictions')
+          .select('*')
+          .eq('user_id', userId)
+          .in('fixture_id', liveIds)
+      : Promise.resolve({ data: [] }),
+    monthIds.length
+      ? supabase
+          .from('predictions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .in('fixture_id', monthIds)
+      : Promise.resolve({ count: 0 }),
+  ]);
+
+  const monthPredictions = monthPredictionsResult.count ?? 0;
+
+  // Build display data
   const displayName = profile?.display_name || user!.email?.split('@')[0] || 'Player';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const liveGameweek = liveFixtures.data?.[0]?.gameweek ?? null;
 
-  // Badge count
-  const { count: badgeCount } = await supabase
-    .from('user_badges')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-  // Get live fixtures for Live Matches section
-  const { data: liveFixtures } = await supabase
-    .from('fixtures')
-    .select('*')
-    .eq('season_id', season.id)
-    .in('status', ['IN_PLAY', 'PAUSED'])
-    .order('kickoff_time', { ascending: true });
-
-  const liveIds = liveFixtures?.map((f) => f.id) ?? [];
-  const { data: livePredictions } = liveIds.length
-    ? await supabase
-        .from('predictions')
-        .select('*')
-        .eq('user_id', userId)
-        .in('fixture_id', liveIds)
-    : { data: [] };
-
-  const liveGameweek = liveFixtures?.[0]?.gameweek ?? null;
-
-  const predMap = new Map(upcomingPredictions?.map((p) => [p.fixture_id, p]));
-  const scoreMap = new Map(recentScores?.map((s) => [s.fixture_id, s]));
+  const predMap = new Map(upcomingPredictions.data?.map((p) => [p.fixture_id, p]));
+  const scoreMap = new Map(recentScores.data?.map((s) => [s.fixture_id, s]));
 
   return (
     <div className="space-y-6">
@@ -200,11 +208,11 @@ export default async function DashboardPage() {
       </Link>
 
       {/* Live Matches */}
-      {liveFixtures && liveFixtures.length > 0 && liveGameweek && (
+      {liveFixtures.data && liveFixtures.data.length > 0 && liveGameweek && (
         <LiveMatchesSection
           gameweek={liveGameweek}
-          initialFixtures={liveFixtures}
-          predictions={(livePredictions ?? []).map((p) => ({
+          initialFixtures={liveFixtures.data}
+          predictions={(livePredictions.data ?? []).map((p) => ({
             fixture_id: p.fixture_id,
             home_score: p.home_score,
             away_score: p.away_score,
@@ -247,9 +255,9 @@ export default async function DashboardPage() {
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </CardHeader>
-        {upcomingFixtures && upcomingFixtures.length > 0 ? (
+        {upcomingFixtures.data && upcomingFixtures.data.length > 0 ? (
           <div className="space-y-3">
-            {upcomingFixtures.map((fixture, i) => (
+            {upcomingFixtures.data.map((fixture, i) => (
               <div
                 key={fixture.id}
                 className="animate-fade-in-up opacity-0"
@@ -289,9 +297,9 @@ export default async function DashboardPage() {
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </CardHeader>
-        {recentFixtures && recentFixtures.length > 0 ? (
+        {recentFixtures.data && recentFixtures.data.length > 0 ? (
           <div className="space-y-3">
-            {recentFixtures.map((fixture, i) => {
+            {recentFixtures.data.map((fixture, i) => {
               const score = scoreMap.get(fixture.id);
               return (
                 <div
