@@ -6,8 +6,9 @@ import { StatCard } from '@/components/stat-card';
 import { GlowDivider } from '@/components/glow-divider';
 import { StarManCard } from '@/components/star-man-card';
 import { LiveMatchesSection } from '@/components/live-matches-section';
+import { Countdown } from '@/components/countdown';
 import { Suspense } from 'react';
-import { Trophy, TrendingUp, Calendar, ChevronRight, Target, Award } from 'lucide-react';
+import { Trophy, TrendingUp, Calendar, ChevronRight, Target, Award, Clock, Lock } from 'lucide-react';
 import Link from 'next/link';
 import {
   getCachedUser,
@@ -164,6 +165,52 @@ export default async function DashboardPage() {
   const predMap = new Map(upcomingPredictions.data?.map((p) => [p.fixture_id, p]));
   const scoreMap = new Map(recentScores.data?.map((s) => [s.fixture_id, s]));
 
+  // Fetch current gameweek and deadline for countdown banner
+  const currentTime = new Date().toISOString();
+  const { data: currentGwRow } = await supabase
+    .from('fixtures')
+    .select('gameweek')
+    .eq('season_id', season.id)
+    .gte('kickoff_time', currentTime)
+    .order('kickoff_time', { ascending: true })
+    .limit(1)
+    .single();
+
+  const currentGameweek = liveGameweek ?? currentGwRow?.gameweek ?? null;
+
+  let gameweekDeadline: string | null = null;
+  if (currentGameweek) {
+    // Check for custom deadline
+    const { data: customDeadlineRow } = await supabase
+      .from('gameweek_deadlines')
+      .select('deadline')
+      .eq('season_id', season.id)
+      .eq('gameweek', currentGameweek)
+      .single();
+
+    if (customDeadlineRow?.deadline) {
+      gameweekDeadline = customDeadlineRow.deadline;
+    } else {
+      // Use earliest kickoff time
+      const { data: currentGwFixtures } = await supabase
+        .from('fixtures')
+        .select('kickoff_time, status')
+        .eq('season_id', season.id)
+        .eq('gameweek', currentGameweek);
+
+      gameweekDeadline =
+        currentGwFixtures
+          ?.filter((f) => f.status !== 'POSTPONED' && f.status !== 'CANCELLED')
+          .reduce<string | null>(
+            (earliest, f) =>
+              !earliest || f.kickoff_time < earliest ? f.kickoff_time : earliest,
+            null,
+          ) ?? null;
+    }
+  }
+
+  const deadlineExpired = gameweekDeadline ? new Date(gameweekDeadline) < new Date() : false;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -192,6 +239,52 @@ export default async function DashboardPage() {
           />
         </Link>
       </div>
+
+      {/* Countdown banner */}
+      {currentGameweek && gameweekDeadline && !deadlineExpired && (
+        <div 
+          className="rounded-card border border-border bg-surface px-4 py-3"
+          role="timer"
+          aria-live="polite"
+          aria-label={`Gameweek ${currentGameweek} predictions deadline countdown`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+              <span className="text-body-sm text-text-secondary">
+                GW {currentGameweek} Predictions Lock In:
+              </span>
+            </div>
+            <Countdown targetDate={gameweekDeadline} className="text-body font-semibold" />
+          </div>
+        </div>
+      )}
+
+      {currentGameweek && gameweekDeadline && deadlineExpired && (
+        <div className="rounded-card border border-border-subtle bg-surface px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-text-tertiary" aria-hidden="true" />
+              <span className="text-body-sm text-text-tertiary">
+                GW {currentGameweek} Locked
+              </span>
+            </div>
+            <span className="text-body-sm text-text-tertiary">Predictions closed</span>
+          </div>
+        </div>
+      )}
+
+      {currentGameweek === null && upcomingFixtures.data && upcomingFixtures.data.length === 0 && (
+        <div className="rounded-card border border-border-subtle bg-surface px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-text-tertiary" aria-hidden="true" />
+            <div className="flex-1">
+              <div className="text-body-sm text-text-tertiary">Season Complete</div>
+              <div className="text-caption text-text-tertiary">No upcoming gameweeks</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick actions */}
       <Link
