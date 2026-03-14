@@ -3,10 +3,11 @@ import { FixtureCard } from '@/components/fixture-card';
 import { PredictionForm } from '@/components/prediction-form';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/empty-state';
+import { Countdown } from '@/components/countdown';
 import { getGameweekLabel } from '@/lib/utils';
 import { submitPrediction } from './actions';
 import { GameweekSelector } from './gameweek-selector';
-import { Calendar } from 'lucide-react';
+import { Calendar, Clock, Lock } from 'lucide-react';
 
 export const metadata = {
   title: 'Fixtures',
@@ -111,6 +112,8 @@ export default async function FixturesPage({ searchParams }: FixturesPageProps) 
       )
     ?? null;
 
+  const deadlineExpired = gameweekDeadline ? new Date(gameweekDeadline) < new Date() : false;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -121,6 +124,40 @@ export default async function FixturesPage({ searchParams }: FixturesPageProps) 
         </div>
         <Badge variant="star">{season.name}</Badge>
       </div>
+
+      {/* Countdown banner */}
+      {gameweekDeadline && !deadlineExpired && (
+        <div 
+          className="rounded-card border border-border bg-surface px-4 py-3"
+          role="timer"
+          aria-live="polite"
+          aria-label={`Gameweek ${selectedGw} predictions deadline countdown`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+              <span className="text-body-sm text-text-secondary">
+                Predictions Lock In:
+              </span>
+            </div>
+            <Countdown targetDate={gameweekDeadline} className="text-body font-semibold" />
+          </div>
+        </div>
+      )}
+
+      {gameweekDeadline && deadlineExpired && (
+        <div className="rounded-card border border-border-subtle bg-surface px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-text-tertiary" aria-hidden="true" />
+              <span className="text-body-sm text-text-tertiary">
+                Locked
+              </span>
+            </div>
+            <span className="text-body-sm text-text-tertiary">Predictions closed</span>
+          </div>
+        </div>
+      )}
 
       {/* Gameweek selector */}
       <GameweekSelector gameweeks={uniqueGameweeks} selected={selectedGw} />
