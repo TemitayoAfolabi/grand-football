@@ -231,6 +231,7 @@ export const moveFixtureGameweekSchema = z.object({
     .min(1, 'Gameweek must be at least 1')
     .max(50, 'Gameweek cannot exceed 50'),
   newStatus: z.enum(['SCHEDULED', 'TIMED', 'POSTPONED']).optional(),
+  newKickoffTime: z.string().min(1).optional(),
 });
 
 export type MoveFixtureGameweekInput = z.infer<typeof moveFixtureGameweekSchema>;
