@@ -703,17 +703,24 @@ export async function moveFixtureGameweek(
   fixtureId: string,
   targetGameweek: number,
   newStatus?: string,
+  newKickoffTime?: string,
 ): Promise<{ error?: string; success?: boolean }> {
   try {
     const adminId = await requireAdmin();
 
-    const parsed = moveFixtureGameweekSchema.safeParse({ fixtureId, targetGameweek, newStatus });
+    const parsed = moveFixtureGameweekSchema.safeParse({ fixtureId, targetGameweek, newStatus, newKickoffTime });
     if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+
+    // Validate kickoff time is a real date if provided
+    if (newKickoffTime) {
+      const dt = new Date(newKickoffTime);
+      if (isNaN(dt.getTime())) return { error: 'Invalid kickoff date/time' };
+    }
 
     const admin = createAdminClient();
     const { data: fixture } = await admin
       .from('fixtures')
-      .select('id, gameweek, status, season_id, home_team, away_team')
+      .select('id, gameweek, status, season_id, home_team, away_team, kickoff_time')
       .eq('id', fixtureId)
       .single();
 
@@ -728,6 +735,7 @@ export async function moveFixtureGameweek(
       updated_at: new Date().toISOString(),
     };
     if (newStatus) updatePayload.status = newStatus;
+    if (newKickoffTime) updatePayload.kickoff_time = new Date(newKickoffTime).toISOString();
 
     const { error: dbError } = await admin.from('fixtures').update(updatePayload).eq('id', fixtureId);
     if (dbError) return { error: 'Failed to move fixture. Please try again.' };
@@ -738,8 +746,8 @@ export async function moveFixtureGameweek(
         ADMIN_ACTIONS.MOVE_FIXTURE_GAMEWEEK,
         'fixture',
         fixtureId,
-        { gameweek: fixture.gameweek, status: fixture.status },
-        { gameweek: targetGameweek, status: newStatus ?? fixture.status },
+        { gameweek: fixture.gameweek, status: fixture.status, kickoff_time: fixture.kickoff_time },
+        { gameweek: targetGameweek, status: newStatus ?? fixture.status, kickoff_time: newKickoffTime ?? fixture.kickoff_time },
       );
     } catch (e) { console.error('Audit log failed:', e); }
 

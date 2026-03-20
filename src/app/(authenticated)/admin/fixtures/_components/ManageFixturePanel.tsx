@@ -21,26 +21,47 @@ interface Props {
   onError: (msg: string) => void;
 }
 
+/** Convert a UTC ISO string to a datetime-local input value (local time). */
+function toDatetimeLocal(isoString: string): string {
+  const d = new Date(isoString);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Return the calendar month name for an ISO or datetime-local string. */
+function getMonthName(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
 export function ManageFixturePanel({ fixture, onSuccess, onError }: Props) {
   const initialStatus: ValidStatus = VALID_STATUSES.includes(fixture.status as ValidStatus)
     ? (fixture.status as ValidStatus)
     : 'SCHEDULED';
 
+  const originalKickoffLocal = toDatetimeLocal(fixture.kickoff_time);
+
   const [open, setOpen] = useState(false);
   const [targetGw, setTargetGw] = useState(fixture.gameweek);
   const [newStatus, setNewStatus] = useState<string>(initialStatus);
+  const [kickoffInput, setKickoffInput] = useState(originalKickoffLocal);
   const [confirmed, setConfirmed] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const hasChanged = targetGw !== fixture.gameweek || newStatus !== fixture.status;
-  const canSave = confirmed && hasChanged && !isPending;
   const gwMoved = targetGw !== fixture.gameweek;
+  const kickoffChanged = kickoffInput !== originalKickoffLocal;
+  const hasChanged = gwMoved || newStatus !== fixture.status || kickoffChanged;
+  const canSave = confirmed && hasChanged && !isPending;
+
+  // Detect if the new kickoff date is in a different calendar month
+  const originalMonth = new Date(fixture.kickoff_time).getMonth();
+  const newKickoffMonth = kickoffInput ? new Date(kickoffInput).getMonth() : originalMonth;
+  const monthChanged = kickoffChanged && newKickoffMonth !== originalMonth;
 
   function handleToggle() {
     if (!open) {
-      // Reset state on open
       setTargetGw(fixture.gameweek);
       setNewStatus(initialStatus);
+      setKickoffInput(originalKickoffLocal);
       setConfirmed(false);
     }
     setOpen(!open);
@@ -56,9 +77,15 @@ export function ManageFixturePanel({ fixture, onSuccess, onError }: Props) {
     setConfirmed(false);
   }
 
+  function handleKickoffChange(val: string) {
+    setKickoffInput(val);
+    setConfirmed(false);
+  }
+
   function handleSave() {
     startTransition(async () => {
-      const result = await moveFixtureGameweek(fixture.id, targetGw, newStatus);
+      const kickoffIso = kickoffChanged ? new Date(kickoffInput).toISOString() : undefined;
+      const result = await moveFixtureGameweek(fixture.id, targetGw, newStatus, kickoffIso);
       if (result.error) {
         onError(result.error);
       } else {
@@ -129,16 +156,49 @@ export function ManageFixturePanel({ fixture, onSuccess, onError }: Props) {
                 ))}
               </select>
             </div>
+
+            {/* Kickoff date/time input */}
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor={`manage-kickoff-${fixture.id}`}
+                className="text-xs font-medium text-text-secondary"
+              >
+                Kickoff Date &amp; Time
+              </label>
+              <input
+                id={`manage-kickoff-${fixture.id}`}
+                type="datetime-local"
+                value={kickoffInput}
+                onChange={(e) => handleKickoffChange(e.target.value)}
+                className="rounded-input border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              />
+            </div>
           </div>
 
-          {/* Warning banner when changing gameweek */}
-          {gwMoved && (
+          {/* Month-change warning — affects monthly bonus count */}
+          {monthChanged && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="rounded border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-300"
+            >
+              <strong>Monthly bonus affected:</strong> Moving the kickoff from{' '}
+              <strong>{getMonthName(fixture.kickoff_time)}</strong> to{' '}
+              <strong>{getMonthName(kickoffInput)}</strong> will reduce {getMonthName(fixture.kickoff_time)}&apos;s
+              required fixture count by 1. Users who predicted all other {getMonthName(fixture.kickoff_time)} games
+              will still earn the +10 bonus.
+            </div>
+          )}
+
+          {/* GW move info banner */}
+          {gwMoved && !monthChanged && (
             <div
               role="alert"
               aria-live="polite"
               className="rounded border border-blue-500/50 bg-blue-500/10 px-3 py-2 text-xs text-blue-300"
             >
               Predictions for this fixture will follow it to GW {targetGw} and remain editable until that gameweek&apos;s deadline.
+              The monthly bonus count is unchanged — update the kickoff date too if the game has moved to a different month.
             </div>
           )}
 
