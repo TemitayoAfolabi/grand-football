@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { emailSchema, overrideSchema, seasonSchema, editScoreRecordSchema, adminCreateUserSchema } from '@/lib/validations';
+import { emailSchema, overrideSchema, seasonSchema, editScoreRecordSchema, adminCreateUserSchema, moveFixtureGameweekSchema, setFixtureStatusSchema } from '@/lib/validations';
 import { ADMIN_ACTIONS } from '@/lib/constants';
 import { evaluateBadgesForAll } from '@/lib/badges/engine';
 
@@ -688,6 +688,110 @@ export async function setGameweekDeadline(
         gameweek,
       });
     }
+
+    revalidatePath('/admin/fixtures');
+    revalidatePath('/fixtures');
+    return { success: true };
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
+}
+
+// ── Move fixture to a different gameweek ────────────────────────────────
+
+export async function moveFixtureGameweek(
+  fixtureId: string,
+  targetGameweek: number,
+  newStatus?: string,
+): Promise<{ error?: string; success?: boolean }> {
+  try {
+    const adminId = await requireAdmin();
+
+    const parsed = moveFixtureGameweekSchema.safeParse({ fixtureId, targetGameweek, newStatus });
+    if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+
+    const admin = createAdminClient();
+    const { data: fixture } = await admin
+      .from('fixtures')
+      .select('id, gameweek, status, season_id, home_team, away_team')
+      .eq('id', fixtureId)
+      .single();
+
+    if (!fixture) return { error: 'Fixture not found' };
+    if (['IN_PLAY', 'PAUSED', 'FINISHED'].includes(fixture.status)) {
+      return { error: 'Cannot move a fixture that is live or finished' };
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      gameweek: targetGameweek,
+      manually_overridden: true,
+      updated_at: new Date().toISOString(),
+    };
+    if (newStatus) updatePayload.status = newStatus;
+
+    const { error: dbError } = await admin.from('fixtures').update(updatePayload).eq('id', fixtureId);
+    if (dbError) return { error: 'Failed to move fixture. Please try again.' };
+
+    try {
+      await auditLog(
+        adminId,
+        ADMIN_ACTIONS.MOVE_FIXTURE_GAMEWEEK,
+        'fixture',
+        fixtureId,
+        { gameweek: fixture.gameweek, status: fixture.status },
+        { gameweek: targetGameweek, status: newStatus ?? fixture.status },
+      );
+    } catch (e) { console.error('Audit log failed:', e); }
+
+    revalidatePath('/admin/fixtures');
+    revalidatePath('/fixtures');
+    return { success: true };
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
+}
+
+// ── Set fixture status (POSTPONED / CANCELLED) ──────────────────────────
+
+export async function setFixtureStatus(
+  fixtureId: string,
+  status: 'POSTPONED' | 'CANCELLED',
+): Promise<{ error?: string; success?: boolean }> {
+  try {
+    const adminId = await requireAdmin();
+
+    const parsed = setFixtureStatusSchema.safeParse({ fixtureId, status });
+    if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+
+    const admin = createAdminClient();
+    const { data: fixture } = await admin
+      .from('fixtures')
+      .select('id, status, home_team, away_team, gameweek')
+      .eq('id', fixtureId)
+      .single();
+
+    if (!fixture) return { error: 'Fixture not found' };
+    if (['IN_PLAY', 'PAUSED'].includes(fixture.status)) return { error: 'Cannot cancel or postpone a live fixture' };
+    if (fixture.status === 'FINISHED') return { error: 'Cannot change status of a finished fixture' };
+    if (fixture.status === status) return { error: `Fixture is already ${status}` };
+
+    const { error: dbError } = await admin.from('fixtures').update({
+      status,
+      manually_overridden: true,
+      updated_at: new Date().toISOString(),
+    }).eq('id', fixtureId);
+    if (dbError) return { error: 'Failed to update status. Please try again.' };
+
+    try {
+      await auditLog(
+        adminId,
+        ADMIN_ACTIONS.SET_FIXTURE_STATUS,
+        'fixture',
+        fixtureId,
+        { status: fixture.status },
+        { status },
+      );
+    } catch (e) { console.error('Audit log failed:', e); }
 
     revalidatePath('/admin/fixtures');
     revalidatePath('/fixtures');
