@@ -163,9 +163,9 @@ export default async function FixturesPage({ searchParams }: FixturesPageProps) 
       <GameweekSelector gameweeks={uniqueGameweeks} selected={selectedGw} />
 
       {/* Fixture list */}
-      {fixtures && fixtures.length > 0 ? (
+      {fixtures && fixtures.filter((f) => f.status !== 'POSTPONED' && f.status !== 'CANCELLED').length > 0 ? (
         <div className="space-y-3">
-          {fixtures.map((fixture, i) => {
+          {fixtures.filter((f) => f.status !== 'POSTPONED' && f.status !== 'CANCELLED').map((fixture, i) => {
             const prediction = predMap.get(fixture.id);
             const scoreRecord = scoreMap.get(fixture.id);
             const isOpen = new Date(fixture.kickoff_time) > new Date();
