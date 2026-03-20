@@ -221,3 +221,24 @@ export const manualStarGamePickSchema = z.object({
 });
 
 export type ManualStarGamePickInput = z.infer<typeof manualStarGamePickSchema>;
+
+/** Admin: move fixture to a different gameweek */
+export const moveFixtureGameweekSchema = z.object({
+  fixtureId: z.string().uuid('Invalid fixture ID'),
+  targetGameweek: z
+    .number()
+    .int('Gameweek must be a whole number')
+    .min(1, 'Gameweek must be at least 1')
+    .max(50, 'Gameweek cannot exceed 50'),
+  newStatus: z.enum(['SCHEDULED', 'TIMED', 'POSTPONED']).optional(),
+});
+
+export type MoveFixtureGameweekInput = z.infer<typeof moveFixtureGameweekSchema>;
+
+/** Admin: set fixture status to POSTPONED or CANCELLED */
+export const setFixtureStatusSchema = z.object({
+  fixtureId: z.string().uuid('Invalid fixture ID'),
+  status: z.enum(['POSTPONED', 'CANCELLED']),
+});
+
+export type SetFixtureStatusInput = z.infer<typeof setFixtureStatusSchema>;

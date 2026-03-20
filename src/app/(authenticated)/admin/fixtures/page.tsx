@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { toggleStarGame, overrideResult, setGameweekDeadline } from '../actions';
+import { PostponeButton } from './_components/PostponeButton';
+import { ManageFixturePanel } from './_components/ManageFixturePanel';
+import { OrphanedFixturesSection } from './_components/OrphanedFixturesSection';
 import { Star, CheckCircle, Clock, X } from 'lucide-react';
 
 interface Fixture {
@@ -94,10 +97,17 @@ export default function AdminFixturesPage() {
     if (!loaded) loadData();
   }, [loaded, loadData]);
 
+  const orphanedFixtures = fixtures.filter(
+    (f) => f.status === 'POSTPONED' || f.status === 'CANCELLED',
+  );
+
   const gameweeks = [...new Set(fixtures.map((f) => f.gameweek))].sort((a, b) => b - a);
   const filtered = gameweekFilter
     ? fixtures.filter((f) => f.gameweek === Number(gameweekFilter))
     : fixtures;
+  const activeFiltered = filtered.filter(
+    (f) => f.status !== 'POSTPONED' && f.status !== 'CANCELLED',
+  );
 
   // Compute the earliest kickoff for the selected gameweek (default deadline)
   const selectedGw = gameweekFilter ? Number(gameweekFilter) : null;
@@ -148,6 +158,15 @@ export default function AdminFixturesPage() {
         setLoaded(false);
       }
     });
+  }
+
+  function handleFixtureSuccess() {
+    setMessage({ type: 'success', text: 'Fixture updated successfully.' });
+    setLoaded(false);
+  }
+
+  function handleFixtureError(msg: string) {
+    setMessage({ type: 'error', text: msg });
   }
 
   function handleSetDeadline() {
@@ -280,14 +299,23 @@ export default function AdminFixturesPage() {
         </Card>
       )}
 
+      {/* Postponed & Cancelled section */}
+      {orphanedFixtures.length > 0 && (
+        <OrphanedFixturesSection
+          fixtures={orphanedFixtures}
+          onSuccess={handleFixtureSuccess}
+          onError={handleFixtureError}
+        />
+      )}
+
       {/* Fixtures list */}
       <div className="space-y-3">
-        {filtered.length === 0 && (
+        {activeFiltered.length === 0 && (
           <p className="py-4 text-center text-sm text-text-secondary">
             No fixtures found.
           </p>
         )}
-        {filtered.map((fixture) => (
+        {activeFiltered.map((fixture) => (
           <Card key={fixture.id}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -317,6 +345,15 @@ export default function AdminFixturesPage() {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                {/* Postpone quick-action — SCHEDULED/TIMED only */}
+                {['SCHEDULED', 'TIMED'].includes(fixture.status) && (
+                  <PostponeButton
+                    fixtureId={fixture.id}
+                    onSuccess={handleFixtureSuccess}
+                    onError={handleFixtureError}
+                  />
+                )}
+
                 {/* Star toggle */}
                 <Button
                   variant={fixture.is_star_game ? 'secondary' : 'ghost'}
@@ -380,6 +417,17 @@ export default function AdminFixturesPage() {
                   Save
                 </Button>
               </form>
+            )}
+
+            {/* Manage fixture panel — only available for pre-kickoff fixtures */}
+            {['SCHEDULED', 'TIMED'].includes(fixture.status) && (
+              <div className="mt-3 border-t border-border pt-3">
+                <ManageFixturePanel
+                  fixture={fixture}
+                  onSuccess={handleFixtureSuccess}
+                  onError={handleFixtureError}
+                />
+              </div>
             )}
           </Card>
         ))}
