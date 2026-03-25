@@ -101,13 +101,15 @@ export default async function DashboardPage() {
       .from('fixtures')
       .select('id', { count: 'exact', head: true })
       .eq('season_id', season.id)
+      .not('status', 'in', '(POSTPONED,CANCELLED,SUSPENDED)')
       .gte('kickoff_time', monthStart)
       .lt('kickoff_time', monthEnd),
-    // Month fixture IDs for prediction count
+    // Month fixture IDs, kickoff times and gameweeks for on-time prediction calculation
     supabase
       .from('fixtures')
-      .select('id')
+      .select('id, kickoff_time, gameweek')
       .eq('season_id', season.id)
+      .not('status', 'in', '(POSTPONED,CANCELLED,SUSPENDED)')
       .gte('kickoff_time', monthStart)
       .lt('kickoff_time', monthEnd),
   ]);
@@ -121,9 +123,10 @@ export default async function DashboardPage() {
   const recentIds = recentFixtures.data?.map((f) => f.id) ?? [];
   const liveIds = liveFixtures.data?.map((f) => f.id) ?? [];
   const monthIds = monthFixtureIds.data?.map((f) => f.id) ?? [];
+  const monthGameweeks = [...new Set((monthFixtureIds.data ?? []).map((f: { id: string; kickoff_time: string; gameweek: number }) => f.gameweek))];
 
   // Second batch of parallel queries (depend on first batch results)
-  const [upcomingPredictions, recentScores, livePredictions, monthPredictionsResult] = await Promise.all([
+  const [upcomingPredictions, recentScores, livePredictions, monthPredictionsResult, adminDeadlinesResult] = await Promise.all([
     upcomingIds.length
       ? supabase
           .from('predictions')
@@ -148,13 +151,54 @@ export default async function DashboardPage() {
     monthIds.length
       ? supabase
           .from('predictions')
-          .select('id', { count: 'exact', head: true })
+          .select('fixture_id, submitted_at, updated_at')
           .eq('user_id', userId)
           .in('fixture_id', monthIds)
-      : Promise.resolve({ count: 0 }),
+      : Promise.resolve({ data: [] }),
+    // Admin-set gameweek deadlines for on-time bonus calculation
+    monthGameweeks.length
+      ? supabase
+          .from('gameweek_deadlines')
+          .select('gameweek, deadline')
+          .eq('season_id', season.id)
+          .in('gameweek', monthGameweeks)
+      : Promise.resolve({ data: [] }),
   ]);
 
-  const monthPredictions = monthPredictionsResult.count ?? 0;
+  const monthPredData = monthPredictionsResult.data ?? [];
+  const monthPredictions = monthPredData.length;
+
+  // Build a map of fixture id → { kickoff_time, gameweek }
+  const fixtureMetaMap = new Map(
+    (monthFixtureIds.data ?? []).map((f: { id: string; kickoff_time: string; gameweek: number }) => [f.id, f])
+  );
+  // Build a map of admin-set deadlines per gameweek
+  const adminDeadlineMap = new Map(
+    (adminDeadlinesResult.data ?? []).map((d: { gameweek: number; deadline: string }) => [d.gameweek, new Date(d.deadline)])
+  );
+  // Effective deadline per gameweek: admin-set if available, else earliest kickoff in that GW
+  const gwDeadlineMap = new Map<number, Date>();
+  for (const gw of monthGameweeks) {
+    if (adminDeadlineMap.has(gw)) {
+      gwDeadlineMap.set(gw, adminDeadlineMap.get(gw)!);
+    } else {
+      const gwFixtures = (monthFixtureIds.data ?? []).filter((f: { id: string; kickoff_time: string; gameweek: number }) => f.gameweek === gw);
+      const earliest = new Date(Math.min(...gwFixtures.map((f: { kickoff_time: string }) => new Date(f.kickoff_time).getTime())));
+      gwDeadlineMap.set(gw, earliest);
+    }
+  }
+
+  const monthOnTimePredictions = monthPredData.filter((p: { fixture_id: string; submitted_at: string; updated_at: string | null }) => {
+    const fixtureMeta = fixtureMetaMap.get(p.fixture_id);
+    if (!fixtureMeta) return false;
+    const deadline = gwDeadlineMap.get(fixtureMeta.gameweek);
+    if (!deadline) return false;
+    const latest = new Date(Math.max(
+      new Date(p.submitted_at).getTime(),
+      new Date(p.updated_at ?? p.submitted_at).getTime()
+    ));
+    return latest <= deadline;
+  }).length;
 
   // Build display data
   const displayName = profile?.display_name || user!.email?.split('@')[0] || 'Player';
@@ -316,11 +360,10 @@ export default async function DashboardPage() {
       {/* Monthly bonus tracker */}
       <Card>
         <BonusTracker
-          predicted={monthPredictions ?? 0}
+          predicted={monthPredictions}
           total={monthFixtures ?? 0}
-          eligible={
-            (monthPredictions ?? 0) === (monthFixtures ?? 0) && (monthFixtures ?? 0) > 0
-          }
+          onTime={monthOnTimePredictions}
+          eligible={monthOnTimePredictions === (monthFixtures ?? 0) && (monthFixtures ?? 0) > 0}
         />
       </Card>
 
