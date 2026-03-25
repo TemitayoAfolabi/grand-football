@@ -174,14 +174,16 @@ export default function RulesPage() {
         </CardHeader>
         <div className="space-y-2 text-sm text-text-secondary">
           <p>
-            If you submit predictions for <strong>every fixture</strong> in a
-            calendar month, you earn a{' '}
+            Submit predictions <strong>on time</strong> (before each fixture&apos;s
+            kickoff) for every fixture in a calendar month to earn a{' '}
             <Badge variant="star">+{SCORING.MONTHLY_BONUS} pts</Badge> bonus at
             month end.
           </p>
           <p>
-            Miss even one fixture and you lose the bonus for that month. The
-            bonus tracker on your dashboard shows your progress.
+            Submitting late (after kickoff) for even one fixture, or missing a
+            fixture entirely, disqualifies you from the bonus that month. The
+            bonus tracker on your dashboard shows how many of your predictions
+            were submitted on time.
           </p>
         </div>
       </Card>
