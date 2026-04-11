@@ -587,6 +587,60 @@ export type Database = {
           },
         ]
       }
+      monthly_bonuses: {
+        Row: {
+          id: string
+          user_id: string
+          season_id: string
+          month: string
+          eligible: boolean
+          bonus_points: number
+          fixtures_total: number
+          predictions_total: number
+          on_time_predictions: number
+          calculated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          season_id: string
+          month: string
+          eligible: boolean
+          bonus_points?: number
+          fixtures_total: number
+          predictions_total: number
+          on_time_predictions?: number
+          calculated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          season_id?: string
+          month?: string
+          eligible?: boolean
+          bonus_points?: number
+          fixtures_total?: number
+          predictions_total?: number
+          on_time_predictions?: number
+          calculated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_bonuses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_bonuses_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -622,6 +676,7 @@ export type Database = {
           exact_count: number
           fixtures_missed: number
           monthly_points: number
+          on_time_predictions: number
           outcome_count: number
           rank: number
           total_monthly: number

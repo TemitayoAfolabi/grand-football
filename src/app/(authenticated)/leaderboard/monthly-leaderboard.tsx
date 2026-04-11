@@ -26,6 +26,7 @@ interface MonthlyEntry {
   outcome_count: number;
   bonus_eligible: boolean;
   fixtures_missed: number;
+  on_time_predictions: number;
 }
 
 export function MonthlyLeaderboard({ seasonId, currentUserId }: MonthlyLeaderboardProps) {
