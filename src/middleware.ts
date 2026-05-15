@@ -5,9 +5,18 @@ import { isAllowlistedEmail } from '@/lib/server/allowlist';
 const PUBLIC_PATHS = ['/login', '/auth/callback', '/auth/set-password'];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  // Guard: fail fast with a clear message if Supabase env vars are missing
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error(
+      '[middleware] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
+        'Set these environment variables in your Vercel project settings.',
+    );
+    return new NextResponse('Server configuration error. Please contact the administrator.', {
+      status: 503,
+    });
+  }
 
-  // Allow public paths through
+  const { pathname } = request.nextUrl;
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     const { response } = await updateSession(request);
     return response;

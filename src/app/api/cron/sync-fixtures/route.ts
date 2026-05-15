@@ -209,16 +209,53 @@ export async function POST(request: NextRequest) {
     // 7. Upsert fixtures
     for (const match of matches) {
       const existing = existingMap.get(match.id);
-
-      // Skip manually overridden fixtures
-      if (existing?.manually_overridden) continue;
-
       const mappedStatus = mapApiStatus(match.status);
       const isLive =
         mappedStatus === FIXTURE_STATUS.IN_PLAY ||
         mappedStatus === FIXTURE_STATUS.PAUSED;
       const wasNotFinished = existing?.status !== FIXTURE_STATUS.FINISHED;
       const isNowFinished = mappedStatus === FIXTURE_STATUS.FINISHED;
+
+      // For manually overridden fixtures: only update scores/status when game finishes or is live
+      // Preserve admin's gameweek and kickoff_time
+      if (existing?.manually_overridden) {
+        if (isNowFinished || isLive) {
+          // Get fixture ID for the update
+          const { data: fixtureData } = await supabase
+            .from('fixtures')
+            .select('id')
+            .eq('api_fixture_id', match.id)
+            .single();
+
+          if (fixtureData) {
+            const updateData: Partial<Database['public']['Tables']['fixtures']['Update']> = {
+              status: mappedStatus,
+              home_score: match.score.fullTime.home,
+              away_score: match.score.fullTime.away,
+              updated_at: new Date().toISOString(),
+              ...(isLive
+                ? {
+                    live_home_score: match.score.fullTime.home,
+                    live_away_score: match.score.fullTime.away,
+                    match_minute: match.minute ?? null,
+                  }
+                : {}),
+            };
+
+            await supabase
+              .from('fixtures')
+              .update(updateData)
+              .eq('id', fixtureData.id);
+
+            synced++;
+
+            if (wasNotFinished && isNowFinished) {
+              newlyFinished.push(fixtureData.id);
+            }
+          }
+        }
+        continue;
+      }
 
       const upsertData: Database['public']['Tables']['fixtures']['Insert'] = {
         season_id: season.id,
