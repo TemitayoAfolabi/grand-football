@@ -8,18 +8,21 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { startNewSeason } from '../actions';
 import { Trophy, AlertTriangle } from 'lucide-react';
+import { formatPremierLeagueSeason, getPremierLeagueSeasonYear } from '@/lib/season';
 
 interface Season {
   id: string;
   name: string;
   is_active: boolean;
+  api_season?: number;
   created_at: string;
 }
 
 export default function AdminSeasonPage() {
+  const suggestedSeason = formatPremierLeagueSeason(getPremierLeagueSeasonYear());
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [seasonName, setSeasonName] = useState('');
+  const [seasonName, setSeasonName] = useState(suggestedSeason);
   const [confirmText, setConfirmText] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -33,7 +36,7 @@ export default function AdminSeasonPage() {
       );
       void supabase
         .from('seasons')
-        .select('id, name, is_active, created_at')
+        .select('id, name, is_active, api_season, created_at')
         .eq('is_active', true)
         .single()
         .then(({ data }) => {
@@ -58,8 +61,11 @@ export default function AdminSeasonPage() {
       if (result.error) {
         setMessage({ type: 'error', text: result.error });
       } else {
-        setMessage({ type: 'success', text: `Season "${seasonName.trim()}" started successfully.` });
-        setSeasonName('');
+        setMessage({
+          type: 'success',
+          text: `Season "${seasonName.trim()}" started with ${result.fixturesImported ?? 0} fixtures.`,
+        });
+        setSeasonName(suggestedSeason);
         setConfirmText('');
         setLoaded(false);
       }
@@ -95,6 +101,12 @@ export default function AdminSeasonPage() {
               <span className="text-text-secondary">Name</span>
               <span className="font-medium text-text-primary">{activeSeason.name}</span>
             </div>
+            {activeSeason.api_season && (
+              <div className="flex justify-between">
+                <span className="text-text-secondary">Fixture feed</span>
+                <span className="font-medium text-text-primary">{activeSeason.api_season}/{String(activeSeason.api_season + 1).slice(-2)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-text-secondary">Created</span>
               <span className="font-medium text-text-primary">
@@ -125,19 +137,19 @@ export default function AdminSeasonPage() {
         </CardHeader>
 
         <Alert variant="warning" className="mb-4">
-          This is a destructive action. Starting a new season will deactivate the current
-          season. This cannot be undone.
+          The app imports the full published fixture list before switching seasons. If
+          the import fails, the current season remains active.
         </Alert>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="New Season Name"
-            placeholder="e.g. 2026-2027"
+            placeholder={suggestedSeason}
             value={seasonName}
             onChange={(e) => setSeasonName(e.target.value)}
             required
             disabled={isPending}
-            hint="Enter a name for the new season"
+            hint={`Only ${suggestedSeason} can be started right now.`}
           />
 
           {seasonName.trim().length > 0 && (

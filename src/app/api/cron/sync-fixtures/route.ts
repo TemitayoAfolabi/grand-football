@@ -7,6 +7,7 @@ import {
   MATCH_DAY_SYNC_INTERVAL_MS,
   FULL_SYNC_INTERVAL_MS,
 } from '@/lib/constants';
+import { getPremierLeagueSeasonYear } from '@/lib/season';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
@@ -100,6 +101,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // football-data.org uses the campaign's starting year. New seasons store
+    // this explicitly; the fallback keeps installations safe until migration
+    // 00022 has been applied.
+    const storedApiSeason = (season as typeof season & { api_season?: number | null })
+      .api_season;
+    const nameYear = /^(20\d{2})-/.exec(season.name)?.[1];
+    const apiSeason = storedApiSeason ?? (nameYear ? Number(nameYear) : getPremierLeagueSeasonYear());
+
     // 3. Determine sync mode based on current state
     const { data: liveFixtures } = await supabase
       .from('fixtures')
@@ -172,7 +181,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await fetch(
-      `${FOOTBALL_DATA_BASE_URL}/competitions/PL/matches?season=2025`,
+      `${FOOTBALL_DATA_BASE_URL}/competitions/PL/matches?season=${apiSeason}`,
       {
         headers: { 'X-Auth-Token': apiKey },
         next: { revalidate: 0 },

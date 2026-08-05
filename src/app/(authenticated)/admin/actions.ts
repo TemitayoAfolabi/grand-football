@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { emailSchema, overrideSchema, seasonSchema, editScoreRecordSchema, adminCreateUserSchema, moveFixtureGameweekSchema, setFixtureStatusSchema } from '@/lib/validations';
 import { ADMIN_ACTIONS } from '@/lib/constants';
 import { evaluateBadgesForAll } from '@/lib/badges/engine';
+import { importSeasonFixtures } from '@/lib/server/season-fixtures';
+import { formatPremierLeagueSeason, getPremierLeagueSeasonYear, getSeasonDates } from '@/lib/season';
 
 /** Helper: verify the caller is an admin and return their user ID. */
 async function requireAdmin(): Promise<string> {
@@ -489,7 +491,7 @@ export async function recalculateScores(
 
 export async function startNewSeason(
   formData: FormData,
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; fixturesImported?: number }> {
   try {
     const adminId = await requireAdmin();
 
@@ -501,29 +503,63 @@ export async function startNewSeason(
     }
 
     const { name } = parsed.data;
+    const seasonMatch = /^(20\d{2})-(20\d{2})$/.exec(name);
+    if (!seasonMatch || Number(seasonMatch[2]) !== Number(seasonMatch[1]) + 1) {
+      return { error: 'Use the season format YYYY-YYYY (for example, 2026-2027).' };
+    }
+
+    const apiSeason = Number(seasonMatch[1]);
+    const expectedApiSeason = getPremierLeagueSeasonYear();
+    if (apiSeason !== expectedApiSeason || name !== formatPremierLeagueSeason(apiSeason)) {
+      return { error: `The season currently available for setup is ${formatPremierLeagueSeason(expectedApiSeason)}.` };
+    }
+
     const admin = createAdminClient();
+    const { startDate, endDate } = getSeasonDates(apiSeason);
 
-    // Deactivate current season
-    await admin
-      .from('seasons')
-      .update({ is_active: false })
-      .eq('is_active', true);
-
-    // Create new season
-    const { error: dbError } = await admin.from('seasons').insert({
+    // Import the published fixture list before changing which season players
+    // see. If the provider is unavailable, the current season stays active.
+    const { data: newSeason, error: dbError } = await admin.from('seasons').insert({
       name,
-      is_active: true,
-      start_date: new Date().toISOString(),
-    });
+      api_season: apiSeason,
+      is_active: false,
+      start_date: startDate,
+      end_date: endDate,
+    } as never).select('id').single();
 
-    if (dbError) {
+    if (dbError || !newSeason) {
       return { error: 'Failed to start new season. Please try again.' };
     }
 
-    await auditLog(adminId, ADMIN_ACTIONS.NEW_SEASON, 'season', null, null, { name });
-    revalidatePath('/admin');
-    revalidatePath('/');
-    return { success: true };
+    let activated = false;
+    try {
+      const { imported } = await importSeasonFixtures(admin, newSeason.id, apiSeason);
+
+      // This database function deactivates the old campaign and activates the
+      // prepared one in the same transaction.
+      const { error: activationError } = await admin.rpc(
+        'activate_prepared_season' as never,
+        { p_season_id: newSeason.id } as never,
+      );
+      if (activationError) throw new Error(activationError.message);
+      activated = true;
+
+      await auditLog(adminId, ADMIN_ACTIONS.NEW_SEASON, 'season', newSeason.id, null, {
+        name,
+        apiSeason,
+        fixturesImported: imported,
+      });
+      revalidatePath('/', 'layout');
+      revalidatePath('/admin');
+      return { success: true, fixturesImported: imported };
+    } catch (err) {
+      if (!activated) {
+        await admin.from('seasons').delete().eq('id', newSeason.id);
+        return { error: `The season was not started: ${(err as Error).message}` };
+      }
+      return { error: `The season started, but a follow-up task failed: ${(err as Error).message}` };
+    }
+
   } catch (err) {
     return { error: (err as Error).message };
   }
