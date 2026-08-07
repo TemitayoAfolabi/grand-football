@@ -12,16 +12,16 @@ const config: Config = {
       // Colors — Dark Premium Design Tokens
       // -----------------------------------------------------------------------
       colors: {
-        bg: { primary: '#0B0F1A', secondary: '#111827' },
+        bg: { primary: '#080C0A', secondary: '#0F1512' },
         surface: {
-          DEFAULT: '#1A2235',
-          elevated: '#243046',
-          glass: 'rgba(26, 34, 53, 0.7)',
+          DEFAULT: '#17211C',
+          elevated: '#223129',
+          glass: 'rgba(23, 33, 28, 0.76)',
         },
         border: {
-          DEFAULT: '#2A3A54',
-          subtle: '#1E2D42',
-          strong: '#3A5278',
+          DEFAULT: '#2B3A32',
+          subtle: '#1E2A24',
+          strong: '#456150',
         },
         text: {
           DEFAULT: '#F1F5F9',
@@ -34,7 +34,7 @@ const config: Config = {
         // Aliases so text-primary, text-secondary, bg-background all resolve
         primary: { DEFAULT: '#22C55E' },
         secondary: { DEFAULT: '#94A3B8' },
-        background: '#111827',
+        background: '#0F1512',
         accent: {
           DEFAULT: '#22C55E',
           hover: '#16A34A',
@@ -88,57 +88,39 @@ const config: Config = {
       },
       fontSize: {
         display: [
-          '35px',
-          { lineHeight: '1.0', fontWeight: '800', letterSpacing: '-0.02em' },
+          'clamp(34px, 6vw, 48px)',
+          { lineHeight: '1', fontWeight: '800', letterSpacing: '0' },
         ],
         h1: [
-          '23px',
-          { lineHeight: '1.15', fontWeight: '700', letterSpacing: '-0.01em' },
+          'clamp(26px, 4vw, 36px)',
+          { lineHeight: '1.12', fontWeight: '800', letterSpacing: '0' },
         ],
         h2: [
-          '17px',
-          { lineHeight: '1.2', fontWeight: '700', letterSpacing: '-0.01em' },
+          'clamp(21px, 3vw, 28px)',
+          { lineHeight: '1.18', fontWeight: '700', letterSpacing: '0' },
         ],
-        h3: ['13px', { lineHeight: '1.3', fontWeight: '600' }],
-        body: ['10px', { lineHeight: '1.6', fontWeight: '400' }],
-        'body-sm': ['8px', { lineHeight: '1.5', fontWeight: '400' }],
-        caption: [
-          '7px',
-          { lineHeight: '1.4', fontWeight: '500', letterSpacing: '0.02em' },
-        ],
-        score: [
-          '31px',
-          { lineHeight: '1.0', fontWeight: '800', letterSpacing: '-0.02em' },
-        ],
-        rank: [
-          '19px',
-          { lineHeight: '1.0', fontWeight: '800', letterSpacing: '-0.01em' },
-        ],
-        stat: ['15px', { lineHeight: '1.1', fontWeight: '700' }],
-        'stat-label': [
-          '7px',
-          { lineHeight: '1.4', fontWeight: '500', letterSpacing: '0.05em' },
-        ],
-        nav: [
-          '7px',
-          { lineHeight: '1.2', fontWeight: '500', letterSpacing: '0.02em' },
-        ],
-        countdown: [
-          '9px',
-          { lineHeight: '1.0', fontWeight: '600', letterSpacing: '0.05em' },
-        ],
-        'score-mobile': ['27px', { lineHeight: '1.1', fontWeight: '700' }],
-        'score-desktop': ['35px', { lineHeight: '1.1', fontWeight: '700' }],
-        'rank-mobile': ['15px', { lineHeight: '1.1', fontWeight: '700' }],
-        'rank-desktop': ['19px', { lineHeight: '1.1', fontWeight: '700' }],
+        h3: ['18px', { lineHeight: '1.3', fontWeight: '700', letterSpacing: '0' }],
+        body: ['16px', { lineHeight: '1.55', fontWeight: '400', letterSpacing: '0' }],
+        'body-sm': ['14px', { lineHeight: '1.45', fontWeight: '400', letterSpacing: '0' }],
+        caption: ['12px', { lineHeight: '1.35', fontWeight: '600', letterSpacing: '0' }],
+        score: ['34px', { lineHeight: '1', fontWeight: '800', letterSpacing: '0' }],
+        rank: ['22px', { lineHeight: '1', fontWeight: '800', letterSpacing: '0' }],
+        stat: ['22px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '0' }],
+        'stat-label': ['12px', { lineHeight: '1.35', fontWeight: '700', letterSpacing: '0' }],
+        nav: ['11px', { lineHeight: '1.2', fontWeight: '600', letterSpacing: '0' }],
+        countdown: ['13px', { lineHeight: '1', fontWeight: '700', letterSpacing: '0' }],
+        'score-mobile': ['30px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '0' }],
+        'score-desktop': ['38px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '0' }],
+        'rank-mobile': ['20px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '0' }],
+        'rank-desktop': ['24px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '0' }],
       },
 
       // -----------------------------------------------------------------------
       // Border Radius
       // -----------------------------------------------------------------------
       borderRadius: {
-        card: '1.1rem',
-        input: '0.85rem',
+        card: '0.5rem',
+        input: '0.5rem',
         pill: '9999px',
       },
 
@@ -154,6 +136,15 @@ const config: Config = {
         '6': '32px',
         '7': '48px',
         '8': '64px',
+      },
+
+      letterSpacing: {
+        tighter: '0',
+        tight: '0',
+        normal: '0',
+        wide: '0',
+        wider: '0',
+        widest: '0',
       },
 
       // -----------------------------------------------------------------------
@@ -181,16 +172,11 @@ const config: Config = {
       backgroundImage: {
         'gradient-hero':
           'radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 36%)',
-        'gradient-card':
-          'linear-gradient(160deg, rgba(26, 34, 53, 0.86), #1A2235)',
-        'gradient-card-accent':
-          'linear-gradient(135deg, rgba(34,197,94,0.08) 0%, transparent 60%)',
-        'gradient-gold':
-          'linear-gradient(135deg, #F5C518 0%, #D4A017 100%)',
-        'gradient-surface':
-          'linear-gradient(180deg, #1A2235 0%, #111827 100%)',
-        'gradient-nav':
-          'linear-gradient(180deg, rgba(11, 15, 26, 0.92), rgba(11, 15, 26, 0.88))',
+        'gradient-card': 'linear-gradient(160deg, rgba(23, 33, 28, 0.9), #17211C)',
+        'gradient-card-accent': 'linear-gradient(135deg, rgba(34,197,94,0.08) 0%, transparent 60%)',
+        'gradient-gold': 'linear-gradient(135deg, #F5C518 0%, #D4A017 100%)',
+        'gradient-surface': 'linear-gradient(180deg, #17211C 0%, #0F1512 100%)',
+        'gradient-nav': 'linear-gradient(180deg, rgba(8, 12, 10, 0.94), rgba(8, 12, 10, 0.9))',
       },
 
       // -----------------------------------------------------------------------

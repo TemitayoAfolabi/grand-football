@@ -34,7 +34,7 @@ export function LeaderboardTable({ entries, currentUserId, className }: Leaderbo
   return (
     <div className={cn('space-y-2', className)}>
       {/* Desktop table header */}
-      <div className="hidden tablet:grid tablet:grid-cols-[48px_1fr_80px_60px_60px_40px] gap-2 px-4 py-2 text-stat-label uppercase tracking-wider text-text-tertiary">
+      <div className="hidden gap-2 px-4 py-2 text-stat-label uppercase tracking-normal text-text-tertiary tablet:grid tablet:grid-cols-[48px_1fr_88px_72px_80px_40px]">
         <span>#</span>
         <span>Player</span>
         <span className="text-right">Points</span>
@@ -52,10 +52,10 @@ export function LeaderboardTable({ entries, currentUserId, className }: Leaderbo
             key={entry.user_id}
             href={`/predictions/${entry.user_id}`}
             className={cn(
-              'grid grid-cols-[48px_1fr_auto_32px] tablet:grid-cols-[48px_1fr_80px_60px_60px_40px] items-center gap-2 rounded-card px-4 py-3 transition-colors duration-150 cursor-pointer',
+              'grid grid-cols-[40px_minmax(0,1fr)_minmax(56px,auto)_28px] items-center gap-2 rounded-card px-3 py-3 transition-colors duration-150 tablet:grid-cols-[48px_1fr_88px_72px_80px_40px] tablet:px-4',
               isCurrentUser
-                ? 'bg-accent-muted border-l-2 border-l-accent'
-                : 'bg-surface border border-border hover:bg-surface-elevated',
+                ? 'border-l-2 border-l-accent bg-accent-muted'
+                : 'border border-border bg-surface hover:bg-surface-elevated',
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >
@@ -73,9 +73,7 @@ export function LeaderboardTable({ entries, currentUserId, className }: Leaderbo
                   <Trophy className="h-4 w-4" aria-label={`Rank ${entry.rank}`} />
                 </div>
               ) : (
-                <span className="text-rank font-extrabold text-text-tertiary">
-                  {entry.rank}
-                </span>
+                <span className="text-rank font-extrabold text-text-tertiary">{entry.rank}</span>
               )}
             </div>
 
@@ -100,20 +98,24 @@ export function LeaderboardTable({ entries, currentUserId, className }: Leaderbo
             </div>
 
             {/* Points */}
-            <span className="text-right text-stat font-bold text-accent tabular-nums">
+            <span className="min-w-[56px] text-right text-stat font-bold tabular-nums text-accent">
               {entry.total_points}
             </span>
 
             {/* Exact count - hidden on mobile */}
             <div className="hidden items-center justify-end gap-1.5 tablet:flex">
               <Target className="h-3.5 w-3.5 text-success" aria-hidden="true" />
-              <span className="text-body-sm tabular-nums text-text-secondary">{entry.exact_count}</span>
+              <span className="text-body-sm tabular-nums text-text-secondary">
+                {entry.exact_count}
+              </span>
             </div>
 
             {/* Outcome count - hidden on mobile */}
             <div className="hidden items-center justify-end gap-1.5 tablet:flex">
               <Eye className="h-3.5 w-3.5 text-info" aria-hidden="true" />
-              <span className="text-body-sm tabular-nums text-text-secondary">{entry.outcome_count}</span>
+              <span className="text-body-sm tabular-nums text-text-secondary">
+                {entry.outcome_count}
+              </span>
             </div>
 
             {/* View predictions indicator */}

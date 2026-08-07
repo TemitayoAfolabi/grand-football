@@ -39,8 +39,8 @@ export default async function BadgesPage() {
       </div>
 
       <p className="text-body-sm text-text-secondary">
-        Earn badges by making predictions, climbing the leaderboard, and hitting milestones.
-        Badges are purely for fun and don&apos;t affect your score.
+        Earn badges by making predictions, climbing the leaderboard, and hitting milestones. Badges
+        are purely for fun and don&apos;t affect your score.
       </p>
 
       {/* Featured badge selector */}
@@ -53,11 +53,8 @@ export default async function BadgesPage() {
             </div>
           </CardTitle>
         </CardHeader>
-        <div className="px-4 pb-4">
-          <BadgeSelector
-            earnedBadgeIds={earnedBadgeIds}
-            currentFeatured={featuredBadges}
-          />
+        <div>
+          <BadgeSelector earnedBadgeIds={earnedBadgeIds} currentFeatured={featuredBadges} />
         </div>
       </Card>
 

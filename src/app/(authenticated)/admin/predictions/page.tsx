@@ -19,9 +19,11 @@ import {
 
 function formatKickoff(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+  return (
+    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
     ' ' +
-    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  );
 }
 
 function formatSubmitted(iso: string): string {
@@ -88,7 +90,10 @@ function AdminPredictionsInner() {
       try {
         const s = await getAdminActiveSeason();
         // Defect #4: explicit error when no active season
-        if (!s) { setError('No active season found.'); return; }
+        if (!s) {
+          setError('No active season found.');
+          return;
+        }
         if (cancelled) return;
         setSeason(s);
 
@@ -96,7 +101,10 @@ function AdminPredictionsInner() {
         if (cancelled) return;
         setGwInfos(infos);
 
-        if (infos.length === 0) { setError('No gameweeks found for the active season.'); return; }
+        if (infos.length === 0) {
+          setError('No gameweeks found for the active season.');
+          return;
+        }
 
         // Defect #1 + edge case: determine current GW
         const rawGwParam = searchParams.get('gw');
@@ -119,7 +127,9 @@ function AdminPredictionsInner() {
         if (!cancelled) setError((err as Error).message);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -130,13 +140,15 @@ function AdminPredictionsInner() {
     setData(null); // Defect #6: clear stale data immediately on GW switch
     setError(null);
     startTransition(() => {
-      void getAdminPredictionsForGameweek(seasonId, gw).then((d) => {
-        setData(d);
-        setLoading(false);
-      }).catch((err: unknown) => {
-        setError((err as Error).message);
-        setLoading(false);
-      });
+      void getAdminPredictionsForGameweek(seasonId, gw)
+        .then((d) => {
+          setData(d);
+          setLoading(false);
+        })
+        .catch((err: unknown) => {
+          setError((err as Error).message);
+          setLoading(false);
+        });
     });
   }
 
@@ -196,8 +208,7 @@ function AdminPredictionsInner() {
       const q = filterText.toLowerCase();
       rows = rows.filter(
         (r) =>
-          r.display_name.toLowerCase().includes(q) ||
-          r.fixture_label.toLowerCase().includes(q),
+          r.display_name.toLowerCase().includes(q) || r.fixture_label.toLowerCase().includes(q),
       );
     }
     if (filterFixture) {
@@ -251,7 +262,7 @@ function AdminPredictionsInner() {
               className={`whitespace-nowrap rounded-full px-3 py-1 text-body-sm font-medium transition-all ${
                 selectedGw === gw
                   ? 'bg-accent text-white'
-                  : 'bg-bg-secondary text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
+                  : 'hover:bg-bg-tertiary bg-bg-secondary text-text-secondary hover:text-text-primary'
               }`}
             >
               GW {gw}
@@ -265,7 +276,9 @@ function AdminPredictionsInner() {
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-1.5 text-body-sm text-text-secondary">
             <Calendar className="h-4 w-4 text-info" aria-hidden="true" />
-            <span>{stats.fixtures} fixture{stats.fixtures !== 1 ? 's' : ''}</span>
+            <span>
+              {stats.fixtures} fixture{stats.fixtures !== 1 ? 's' : ''}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-body-sm text-text-secondary">
             <Users className="h-4 w-4 text-accent" aria-hidden="true" />
@@ -277,10 +290,7 @@ function AdminPredictionsInner() {
             <div className="flex items-center gap-1.5 text-body-sm text-text-secondary">
               <Clock className="h-4 w-4 text-gold" aria-hidden="true" />
               <span>Deadline: {formatKickoff(stats.deadline)}</span>
-              <Badge
-                variant={stats.deadlinePassed ? 'locked' : 'warning'}
-                className="text-[10px]"
-              >
+              <Badge variant={stats.deadlinePassed ? 'locked' : 'warning'} className="text-caption">
                 {stats.deadlinePassed ? 'Closed' : 'Open'}
               </Badge>
             </div>
@@ -298,8 +308,11 @@ function AdminPredictionsInner() {
             </div>
           </CardTitle>
           <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[180px]">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" aria-hidden="true" />
+            <div className="relative min-w-[180px] flex-1">
+              <Search
+                className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary"
+                aria-hidden="true"
+              />
               <Input
                 placeholder="Search player or fixture…"
                 value={filterInput}
@@ -328,16 +341,15 @@ function AdminPredictionsInner() {
 
         {/* Loading / Error / Empty */}
         {loading && (
-          <p className="py-8 text-center text-sm text-text-secondary animate-pulse">
+          <p className="animate-pulse py-8 text-center text-sm text-text-secondary">
             Loading predictions…
           </p>
         )}
-        {error && (
-          <p className="py-4 text-center text-sm text-error">{error}</p>
-        )}
+        {error && <p className="py-4 text-center text-sm text-error">{error}</p>}
         {!loading && !error && data && filteredRows.length === 0 && (
           <p className="py-8 text-center text-sm text-text-secondary">
-            No predictions found{filterText || filterFixture ? ' for this filter' : ' for this gameweek'}.
+            No predictions found
+            {filterText || filterFixture ? ' for this filter' : ' for this gameweek'}.
           </p>
         )}
         {!loading && !error && !data && gwInfos.length === 0 && (
@@ -352,14 +364,28 @@ function AdminPredictionsInner() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap">Player</th>
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap">Fixture</th>
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap">Kickoff</th>
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap text-center">Prediction</th>
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap text-center">Actual</th>
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap text-center">Points</th>
-                  <th className="pb-2 pr-3 font-medium text-text-secondary whitespace-nowrap">Submitted</th>
-                  <th className="pb-2 font-medium text-text-secondary whitespace-nowrap">⭐</th>
+                  <th className="whitespace-nowrap pb-2 pr-3 font-medium text-text-secondary">
+                    Player
+                  </th>
+                  <th className="whitespace-nowrap pb-2 pr-3 font-medium text-text-secondary">
+                    Fixture
+                  </th>
+                  <th className="whitespace-nowrap pb-2 pr-3 font-medium text-text-secondary">
+                    Kickoff
+                  </th>
+                  <th className="whitespace-nowrap pb-2 pr-3 text-center font-medium text-text-secondary">
+                    Prediction
+                  </th>
+                  <th className="whitespace-nowrap pb-2 pr-3 text-center font-medium text-text-secondary">
+                    Actual
+                  </th>
+                  <th className="whitespace-nowrap pb-2 pr-3 text-center font-medium text-text-secondary">
+                    Points
+                  </th>
+                  <th className="whitespace-nowrap pb-2 pr-3 font-medium text-text-secondary">
+                    Submitted
+                  </th>
+                  <th className="whitespace-nowrap pb-2 font-medium text-text-secondary">⭐</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -369,17 +395,17 @@ function AdminPredictionsInner() {
                     className={row.pred_home === null ? 'opacity-50' : ''}
                   >
                     {/* Player */}
-                    <td className="py-2 pr-3 font-medium text-text-primary whitespace-nowrap">
+                    <td className="whitespace-nowrap py-2 pr-3 font-medium text-text-primary">
                       {row.display_name}
                     </td>
 
                     {/* Fixture */}
-                    <td className="py-2 pr-3 text-text-secondary whitespace-nowrap">
+                    <td className="whitespace-nowrap py-2 pr-3 text-text-secondary">
                       {row.fixture_label}
                     </td>
 
                     {/* Kickoff */}
-                    <td className="py-2 pr-3 text-text-secondary whitespace-nowrap tabular-nums text-xs">
+                    <td className="whitespace-nowrap py-2 pr-3 text-xs tabular-nums text-text-secondary">
                       {formatKickoff(row.kickoff)}
                     </td>
 
@@ -411,13 +437,13 @@ function AdminPredictionsInner() {
                     </td>
 
                     {/* Submitted + updated_at (Defect #3) */}
-                    <td className="py-2 pr-3 text-text-secondary text-xs whitespace-nowrap">
+                    <td className="whitespace-nowrap py-2 pr-3 text-xs text-text-secondary">
                       {row.submitted_at ? (
                         <span>
                           {formatSubmitted(row.submitted_at)}
                           {row.edited && row.updated_at && (
-                            <span className="block text-[10px] text-text-secondary">
-                              <Badge variant="warning" className="mr-1 text-[10px]">
+                            <span className="block text-caption text-text-secondary">
+                              <Badge variant="warning" className="mr-1 text-caption">
                                 Edited
                               </Badge>
                               {formatSubmitted(row.updated_at)}
@@ -432,7 +458,9 @@ function AdminPredictionsInner() {
                     {/* Star Game */}
                     <td className="py-2 text-center">
                       {row.is_star_game && (
-                        <span className="text-gold" aria-label="Star game">★</span>
+                        <span className="text-gold" aria-label="Star game">
+                          ★
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -445,9 +473,9 @@ function AdminPredictionsInner() {
 
       {/* Row count */}
       {!loading && filteredRows.length > 0 && (
-        <p className="text-xs text-text-secondary text-right">
+        <p className="text-right text-xs text-text-secondary">
           Showing {filteredRows.length} row{filteredRows.length !== 1 ? 's' : ''}
-          {(filterText || filterFixture) ? ` (filtered from ${displayRows.length})` : ''}
+          {filterText || filterFixture ? ` (filtered from ${displayRows.length})` : ''}
         </p>
       )}
     </div>
@@ -458,7 +486,11 @@ function AdminPredictionsInner() {
 
 export default function AdminPredictionsPage() {
   return (
-    <Suspense fallback={<p className="py-8 text-center text-sm text-text-secondary animate-pulse">Loading…</p>}>
+    <Suspense
+      fallback={
+        <p className="animate-pulse py-8 text-center text-sm text-text-secondary">Loading…</p>
+      }
+    >
       <AdminPredictionsInner />
     </Suspense>
   );

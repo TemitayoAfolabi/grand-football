@@ -23,7 +23,7 @@ export function GameweekSelector({ gameweeks, selected }: GameweekSelectorProps)
 
   return (
     <div
-      className="hide-scrollbar relative flex gap-2 overflow-x-auto pb-1"
+      className="hide-scrollbar relative -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 tablet:mx-0 tablet:px-0"
       role="tablist"
       aria-label="Gameweek selector"
     >
@@ -36,10 +36,10 @@ export function GameweekSelector({ gameweeks, selected }: GameweekSelectorProps)
           aria-selected={gw === selected}
           scroll={false}
           className={cn(
-            'shrink-0 rounded-pill px-4 py-2 text-body-sm font-medium transition-all duration-150',
+            'shrink-0 rounded-pill px-4 py-2.5 text-body-sm font-semibold transition-all duration-150',
             gw === selected
               ? 'bg-accent text-text-inverse shadow-glow-accent'
-              : 'bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-border-strong',
+              : 'border border-border bg-surface-elevated text-text-secondary hover:border-border-strong hover:text-text-primary',
           )}
         >
           GW {gw}

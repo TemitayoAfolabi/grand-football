@@ -16,8 +16,13 @@
 
   body {
     @apply bg-bg-primary text-text-primary antialiased;
-    background-image: radial-gradient(circle at top right, rgba(34, 197, 94, 0.06), transparent 40%);
+    background-image: radial-gradient(
+      circle at top right,
+      rgba(34, 197, 94, 0.06),
+      transparent 40%
+    );
     font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
   }
 
   *:focus-visible {
@@ -42,7 +47,11 @@
   }
 
   /* Minimum touch target for a11y — only on interactive elements */
-  a, button, input, select, textarea {
+  a,
+  button,
+  input,
+  select,
+  textarea {
     min-height: 44px;
   }
 
@@ -76,12 +85,14 @@
 
   /* Card gradient background */
   .card-gradient {
-    background: linear-gradient(160deg, rgba(26, 34, 53, 0.9), #1A2235);
+    background: linear-gradient(160deg, rgba(23, 33, 28, 0.92), #17211c);
   }
 
   /* Featured card glow */
   .card-featured-glow {
-    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.28), 0 0 28px rgba(34, 197, 94, 0.2);
+    box-shadow:
+      0 0 0 1px rgba(34, 197, 94, 0.28),
+      0 0 28px rgba(34, 197, 94, 0.2);
   }
 
   /* Star card pulse animation */
@@ -90,11 +101,16 @@
   }
 
   @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.28), 0 0 28px rgba(34, 197, 94, 0.2);
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px rgba(34, 197, 94, 0.28),
+        0 0 28px rgba(34, 197, 94, 0.2);
     }
     50% {
-      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4), 0 0 34px rgba(34, 197, 94, 0.3);
+      box-shadow:
+        0 0 0 1px rgba(34, 197, 94, 0.4),
+        0 0 34px rgba(34, 197, 94, 0.3);
     }
   }
 
@@ -113,15 +129,27 @@
   }
 
   /* Stagger animation delay utilities */
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
+  .stagger-1 {
+    animation-delay: 50ms;
+  }
+  .stagger-2 {
+    animation-delay: 100ms;
+  }
+  .stagger-3 {
+    animation-delay: 150ms;
+  }
+  .stagger-4 {
+    animation-delay: 200ms;
+  }
+  .stagger-5 {
+    animation-delay: 250ms;
+  }
 
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;

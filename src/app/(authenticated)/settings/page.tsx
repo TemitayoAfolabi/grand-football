@@ -25,7 +25,10 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordMessage, setPasswordMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const [isPasswordPending, startPasswordTransition] = useTransition();
 
   if (!loaded) {
@@ -88,21 +91,39 @@ export default function SettingsPage() {
     });
   }
 
-  const initials = displayName ? displayName.charAt(0).toUpperCase() : email ? email.charAt(0).toUpperCase() : '?';
+  const initials = displayName
+    ? displayName.charAt(0).toUpperCase()
+    : email
+      ? email.charAt(0).toUpperCase()
+      : '?';
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <h1 className="text-h1 text-text-primary">Profile</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-h1 text-text-primary">Profile</h1>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={handleSignOut}
+          loading={signingOut}
+          className="tablet:hidden"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          Sign Out
+        </Button>
+      </div>
 
       {/* Avatar section */}
       <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent/30 bg-accent-muted text-h1 font-bold text-accent">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-accent/30 bg-accent-muted text-h1 font-bold text-accent">
           {initials}
         </div>
-        <div>
-          <p className="text-h3 font-semibold text-text-primary">{displayName || 'Anonymous'}</p>
-          {email && <p className="text-body-sm text-text-secondary">{email}</p>}
+        <div className="min-w-0">
+          <p className="truncate text-h3 font-semibold text-text-primary">
+            {displayName || 'Anonymous'}
+          </p>
+          {email && <p className="truncate text-body-sm text-text-secondary">{email}</p>}
         </div>
       </div>
 
@@ -131,11 +152,9 @@ export default function SettingsPage() {
             hint="3–20 characters, alphanumeric and spaces only"
           />
           {message && (
-            <Alert variant={message.type === 'success' ? 'success' : 'error'}>
-              {message.text}
-            </Alert>
+            <Alert variant={message.type === 'success' ? 'success' : 'error'}>{message.text}</Alert>
           )}
-          <Button type="submit" loading={isPending}>
+          <Button type="submit" loading={isPending} className="w-full tablet:w-auto">
             Save Changes
           </Button>
         </form>
@@ -153,7 +172,7 @@ export default function SettingsPage() {
         </CardHeader>
         <Link
           href="/badges"
-          className="flex items-center justify-between rounded-input p-3 text-body text-text-primary hover:bg-surface-elevated transition-colors"
+          className="flex items-center justify-between rounded-input p-3 text-body text-text-primary transition-colors hover:bg-surface-elevated"
         >
           <div className="flex items-center gap-3">
             <Award className="h-4 w-4 text-accent" aria-hidden="true" />
@@ -163,7 +182,7 @@ export default function SettingsPage() {
         </Link>
         <Link
           href="/rules"
-          className="flex items-center justify-between rounded-input p-3 text-body text-text-primary hover:bg-surface-elevated transition-colors"
+          className="flex items-center justify-between rounded-input p-3 text-body text-text-primary transition-colors hover:bg-surface-elevated"
         >
           <div className="flex items-center gap-3">
             <BookOpen className="h-4 w-4 text-accent" aria-hidden="true" />
@@ -230,7 +249,13 @@ export default function SettingsPage() {
           <Button
             type="submit"
             loading={isPasswordPending}
-            disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+            disabled={
+              !currentPassword ||
+              !newPassword ||
+              !confirmPassword ||
+              newPassword !== confirmPassword
+            }
+            className="w-full tablet:w-auto"
           >
             Change Password
           </Button>

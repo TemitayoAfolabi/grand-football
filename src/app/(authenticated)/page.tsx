@@ -8,7 +8,16 @@ import { StarManCard } from '@/components/star-man-card';
 import { LiveMatchesSection } from '@/components/live-matches-section';
 import { Countdown } from '@/components/countdown';
 import { Suspense } from 'react';
-import { Trophy, TrendingUp, Calendar, ChevronRight, Target, Award, Clock, Lock } from 'lucide-react';
+import {
+  Trophy,
+  TrendingUp,
+  Calendar,
+  ChevronRight,
+  Target,
+  Award,
+  Clock,
+  Lock,
+} from 'lucide-react';
 import Link from 'next/link';
 import {
   getCachedUser,
@@ -23,13 +32,10 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  
+
   // Use cached queries for user and season - these may already be fetched by layout
-  const [user, season] = await Promise.all([
-    getCachedUser(),
-    getCachedActiveSeason(),
-  ]);
-  
+  const [user, season] = await Promise.all([getCachedUser(), getCachedActiveSeason()]);
+
   const userId = user!.id;
 
   if (!season) {
@@ -46,12 +52,8 @@ export default async function DashboardPage() {
 
   // Calculate month boundaries once
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split('T')[0]!;
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    .toISOString()
-    .split('T')[0]!;
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]!;
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0]!;
 
   // Parallelize ALL independent queries - this is the biggest performance win
   const [
@@ -85,10 +87,7 @@ export default async function DashboardPage() {
     // User profile (cached)
     getCachedProfile(userId),
     // Badge count
-    supabase
-      .from('user_badges')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId),
+    supabase.from('user_badges').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     // Live fixtures
     supabase
       .from('fixtures')
@@ -123,30 +122,30 @@ export default async function DashboardPage() {
   const recentIds = recentFixtures.data?.map((f) => f.id) ?? [];
   const liveIds = liveFixtures.data?.map((f) => f.id) ?? [];
   const monthIds = monthFixtureIds.data?.map((f) => f.id) ?? [];
-  const monthGameweeks = [...new Set((monthFixtureIds.data ?? []).map((f: { id: string; kickoff_time: string; gameweek: number }) => f.gameweek))];
+  const monthGameweeks = [
+    ...new Set(
+      (monthFixtureIds.data ?? []).map(
+        (f: { id: string; kickoff_time: string; gameweek: number }) => f.gameweek,
+      ),
+    ),
+  ];
 
   // Second batch of parallel queries (depend on first batch results)
-  const [upcomingPredictions, recentScores, livePredictions, monthPredictionsResult, adminDeadlinesResult] = await Promise.all([
+  const [
+    upcomingPredictions,
+    recentScores,
+    livePredictions,
+    monthPredictionsResult,
+    adminDeadlinesResult,
+  ] = await Promise.all([
     upcomingIds.length
-      ? supabase
-          .from('predictions')
-          .select('*')
-          .eq('user_id', userId)
-          .in('fixture_id', upcomingIds)
+      ? supabase.from('predictions').select('*').eq('user_id', userId).in('fixture_id', upcomingIds)
       : Promise.resolve({ data: [] }),
     recentIds.length
-      ? supabase
-          .from('score_records')
-          .select('*')
-          .eq('user_id', userId)
-          .in('fixture_id', recentIds)
+      ? supabase.from('score_records').select('*').eq('user_id', userId).in('fixture_id', recentIds)
       : Promise.resolve({ data: [] }),
     liveIds.length
-      ? supabase
-          .from('predictions')
-          .select('*')
-          .eq('user_id', userId)
-          .in('fixture_id', liveIds)
+      ? supabase.from('predictions').select('*').eq('user_id', userId).in('fixture_id', liveIds)
       : Promise.resolve({ data: [] }),
     monthIds.length
       ? supabase
@@ -170,11 +169,16 @@ export default async function DashboardPage() {
 
   // Build a map of fixture id → { kickoff_time, gameweek }
   const fixtureMetaMap = new Map(
-    (monthFixtureIds.data ?? []).map((f: { id: string; kickoff_time: string; gameweek: number }) => [f.id, f])
+    (monthFixtureIds.data ?? []).map(
+      (f: { id: string; kickoff_time: string; gameweek: number }) => [f.id, f],
+    ),
   );
   // Build a map of admin-set deadlines per gameweek
   const adminDeadlineMap = new Map(
-    (adminDeadlinesResult.data ?? []).map((d: { gameweek: number; deadline: string }) => [d.gameweek, new Date(d.deadline)])
+    (adminDeadlinesResult.data ?? []).map((d: { gameweek: number; deadline: string }) => [
+      d.gameweek,
+      new Date(d.deadline),
+    ]),
   );
   // Effective deadline per gameweek: admin-set if available, else earliest kickoff in that GW
   const gwDeadlineMap = new Map<number, Date>();
@@ -182,23 +186,33 @@ export default async function DashboardPage() {
     if (adminDeadlineMap.has(gw)) {
       gwDeadlineMap.set(gw, adminDeadlineMap.get(gw)!);
     } else {
-      const gwFixtures = (monthFixtureIds.data ?? []).filter((f: { id: string; kickoff_time: string; gameweek: number }) => f.gameweek === gw);
-      const earliest = new Date(Math.min(...gwFixtures.map((f: { kickoff_time: string }) => new Date(f.kickoff_time).getTime())));
+      const gwFixtures = (monthFixtureIds.data ?? []).filter(
+        (f: { id: string; kickoff_time: string; gameweek: number }) => f.gameweek === gw,
+      );
+      const earliest = new Date(
+        Math.min(
+          ...gwFixtures.map((f: { kickoff_time: string }) => new Date(f.kickoff_time).getTime()),
+        ),
+      );
       gwDeadlineMap.set(gw, earliest);
     }
   }
 
-  const monthOnTimePredictions = monthPredData.filter((p: { fixture_id: string; submitted_at: string; updated_at: string | null }) => {
-    const fixtureMeta = fixtureMetaMap.get(p.fixture_id);
-    if (!fixtureMeta) return false;
-    const deadline = gwDeadlineMap.get(fixtureMeta.gameweek);
-    if (!deadline) return false;
-    const latest = new Date(Math.max(
-      new Date(p.submitted_at).getTime(),
-      new Date(p.updated_at ?? p.submitted_at).getTime()
-    ));
-    return latest <= deadline;
-  }).length;
+  const monthOnTimePredictions = monthPredData.filter(
+    (p: { fixture_id: string; submitted_at: string; updated_at: string | null }) => {
+      const fixtureMeta = fixtureMetaMap.get(p.fixture_id);
+      if (!fixtureMeta) return false;
+      const deadline = gwDeadlineMap.get(fixtureMeta.gameweek);
+      if (!deadline) return false;
+      const latest = new Date(
+        Math.max(
+          new Date(p.submitted_at).getTime(),
+          new Date(p.updated_at ?? p.submitted_at).getTime(),
+        ),
+      );
+      return latest <= deadline;
+    },
+  ).length;
 
   // Build display data
   const displayName = profile?.display_name || user!.email?.split('@')[0] || 'Player';
@@ -245,11 +259,10 @@ export default async function DashboardPage() {
       gameweekDeadline =
         currentGwFixtures
           ?.filter((f) => f.status !== 'POSTPONED' && f.status !== 'CANCELLED')
-          .reduce<string | null>(
-            (earliest, f) =>
-              !earliest || f.kickoff_time < earliest ? f.kickoff_time : earliest,
-            null,
-          ) ?? null;
+          .reduce<
+            string | null
+          >((earliest, f) => (!earliest || f.kickoff_time < earliest ? f.kickoff_time : earliest), null) ??
+        null;
     }
   }
 
@@ -259,40 +272,30 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-h1 text-text-primary">{greeting}, {displayName}</h1>
+        <h1 className="text-h1 text-text-primary">
+          {greeting}, {displayName}
+        </h1>
         <p className="mt-1 text-body-sm text-text-secondary">{season.name} Season</p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard
-          icon={Trophy}
-          label="Rank"
-          value={userEntry?.rank ? `#${userEntry.rank}` : '-'}
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Points"
-          value={userEntry?.total_points ?? 0}
-        />
+      <div className="grid grid-cols-3 gap-2 tablet:gap-3">
+        <StatCard icon={Trophy} label="Rank" value={userEntry?.rank ? `#${userEntry.rank}` : '-'} />
+        <StatCard icon={TrendingUp} label="Points" value={userEntry?.total_points ?? 0} />
         <Link href="/badges" className="block">
-          <StatCard
-            icon={Award}
-            label="Badges"
-            value={badgeCount ?? 0}
-          />
+          <StatCard icon={Award} label="Badges" value={badgeCount ?? 0} />
         </Link>
       </div>
 
       {/* Countdown banner */}
       {currentGameweek && gameweekDeadline && !deadlineExpired && (
-        <div 
+        <div
           className="rounded-card border border-border bg-surface px-4 py-3"
           role="timer"
           aria-live="polite"
           aria-label={`Gameweek ${currentGameweek} predictions deadline countdown`}
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-3">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-text-secondary" aria-hidden="true" />
               <span className="text-body-sm text-text-secondary">
@@ -306,12 +309,10 @@ export default async function DashboardPage() {
 
       {currentGameweek && gameweekDeadline && deadlineExpired && (
         <div className="rounded-card border border-border-subtle bg-surface px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-3">
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-text-tertiary" aria-hidden="true" />
-              <span className="text-body-sm text-text-tertiary">
-                GW {currentGameweek} Locked
-              </span>
+              <span className="text-body-sm text-text-tertiary">GW {currentGameweek} Locked</span>
             </div>
             <span className="text-body-sm text-text-tertiary">Predictions closed</span>
           </div>
@@ -385,7 +386,7 @@ export default async function DashboardPage() {
           </CardTitle>
           <Link
             href="/fixtures"
-            className="flex items-center gap-1 text-body-sm text-accent hover:text-accent-hover transition-colors"
+            className="flex items-center gap-1 text-body-sm text-accent transition-colors hover:text-accent-hover"
           >
             View all
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -399,10 +400,7 @@ export default async function DashboardPage() {
                 className="animate-fade-in-up opacity-0"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
-                <FixtureCard
-                  fixture={fixture}
-                  prediction={predMap.get(fixture.id) ?? null}
-                />
+                <FixtureCard fixture={fixture} prediction={predMap.get(fixture.id) ?? null} />
               </div>
             ))}
           </div>
@@ -427,7 +425,7 @@ export default async function DashboardPage() {
           </CardTitle>
           <Link
             href="/fixtures"
-            className="flex items-center gap-1 text-body-sm text-accent hover:text-accent-hover transition-colors"
+            className="flex items-center gap-1 text-body-sm text-accent transition-colors hover:text-accent-hover"
           >
             View all
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -443,10 +441,7 @@ export default async function DashboardPage() {
                   className="animate-fade-in-up opacity-0"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
-                  <FixtureCard
-                    fixture={fixture}
-                    scoreRecord={score ?? null}
-                  />
+                  <FixtureCard fixture={fixture} scoreRecord={score ?? null} />
                 </div>
               );
             })}

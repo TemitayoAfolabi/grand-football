@@ -24,10 +24,8 @@ export function BadgeGrid({ earnedBadges, className }: BadgeGridProps) {
     <div className={cn('space-y-6', className)}>
       {/* Summary */}
       <div className="flex items-center gap-3">
-        <span className="text-stat font-bold text-accent tabular-nums">{earnedCount}</span>
-        <span className="text-body-sm text-text-secondary">
-          / {BADGES.length} badges earned
-        </span>
+        <span className="text-stat font-bold tabular-nums text-accent">{earnedCount}</span>
+        <span className="text-body-sm text-text-secondary">/ {BADGES.length} badges earned</span>
       </div>
 
       {/* Tiers */}
@@ -39,7 +37,9 @@ export function BadgeGrid({ earnedBadges, className }: BadgeGridProps) {
         return (
           <section key={tier}>
             <div className="mb-3 flex items-center gap-2">
-              <h3 className={cn('text-body-sm font-bold uppercase tracking-wider', tierConfig.color)}>
+              <h3
+                className={cn('text-body-sm font-bold uppercase tracking-normal', tierConfig.color)}
+              >
                 {tierConfig.label}
               </h3>
               <span className="text-caption text-text-tertiary">
@@ -47,17 +47,13 @@ export function BadgeGrid({ earnedBadges, className }: BadgeGridProps) {
               </span>
             </div>
 
-            <div className="grid grid-cols-4 tablet:grid-cols-6 desktop:grid-cols-8 gap-4">
+            <div className="grid grid-cols-3 gap-4 tablet:grid-cols-5 desktop:grid-cols-8">
               {tierBadges.map((badge) => (
                 <div key={badge.id} className="flex flex-col items-center gap-1.5">
-                  <BadgeIcon
-                    badge={badge}
-                    earned={earnedSet.has(badge.id)}
-                    size="md"
-                  />
+                  <BadgeIcon badge={badge} earned={earnedSet.has(badge.id)} size="md" />
                   <span
                     className={cn(
-                      'text-center text-[11px] font-medium leading-tight',
+                      'text-center text-caption font-semibold leading-tight',
                       earnedSet.has(badge.id) ? 'text-text-primary' : 'text-text-disabled',
                     )}
                   >

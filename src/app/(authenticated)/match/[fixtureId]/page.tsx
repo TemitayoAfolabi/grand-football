@@ -68,7 +68,7 @@ export default async function MatchDetailPage({ params }: MatchDetailProps) {
       {/* Back link */}
       <Link
         href="/fixtures"
-        className="inline-flex items-center gap-1 text-body-sm text-text-secondary hover:text-accent transition-colors"
+        className="inline-flex items-center gap-1 text-body-sm text-text-secondary transition-colors hover:text-accent"
       >
         <ChevronLeft className="h-4 w-4" />
         Fixtures
@@ -76,43 +76,49 @@ export default async function MatchDetailPage({ params }: MatchDetailProps) {
 
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
           {fixture.is_star_game && <Star className="h-5 w-5 text-gold" aria-label="Star Game" />}
           <h1 className="text-h1 text-text-primary">
             {fixture.home_team} vs {fixture.away_team}
           </h1>
         </div>
-        <p className="mt-1 text-body-sm text-text-secondary">{formatKickoffTime(fixture.kickoff_time)}</p>
+        <p className="mt-1 text-body-sm text-text-secondary">
+          {formatKickoffTime(fixture.kickoff_time)}
+        </p>
       </div>
 
       {/* Status badges */}
       <div className="flex gap-2">
         {fixture.is_star_game && <Badge variant="star">Star Game</Badge>}
         {fixture.status === 'FINISHED' && <Badge variant="success">Full Time</Badge>}
-        {(fixture.status === 'IN_PLAY' || fixture.status === 'PAUSED') && <Badge variant="live">Live</Badge>}
+        {(fixture.status === 'IN_PLAY' || fixture.status === 'PAUSED') && (
+          <Badge variant="live">Live</Badge>
+        )}
       </div>
 
       {/* Final Score */}
-      {fixture.status === 'FINISHED' && fixture.home_score !== null && fixture.away_score !== null && (
-        <Card variant="elevated" className="py-6">
-          <h2 className="mb-4 text-center text-stat-label uppercase tracking-wider text-text-secondary">
-            Final Score
-          </h2>
-          <ScoreDisplay
-            homeTeam={fixture.home_team}
-            awayTeam={fixture.away_team}
-            homeScore={fixture.home_score}
-            awayScore={fixture.away_score}
-            large
-          />
-        </Card>
-      )}
+      {fixture.status === 'FINISHED' &&
+        fixture.home_score !== null &&
+        fixture.away_score !== null && (
+          <Card variant="elevated" className="py-6">
+            <h2 className="mb-4 text-center text-stat-label uppercase tracking-normal text-text-secondary">
+              Final Score
+            </h2>
+            <ScoreDisplay
+              homeTeam={fixture.home_team}
+              awayTeam={fixture.away_team}
+              homeScore={fixture.home_score}
+              awayScore={fixture.away_score}
+              large
+            />
+          </Card>
+        )}
 
       <GlowDivider />
 
       {/* Prediction */}
       <Card>
-        <h2 className="mb-4 text-stat-label uppercase tracking-wider text-text-secondary">
+        <h2 className="mb-4 text-stat-label uppercase tracking-normal text-text-secondary">
           Your Prediction
         </h2>
         {prediction ? (
@@ -130,17 +136,22 @@ export default async function MatchDetailPage({ params }: MatchDetailProps) {
       {/* Points */}
       {scoreRecord && (
         <Card variant="accent">
-          <h2 className="mb-4 text-stat-label uppercase tracking-wider text-text-secondary">
+          <h2 className="mb-4 text-stat-label uppercase tracking-normal text-text-secondary">
             Points Awarded
           </h2>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 tablet:flex-row tablet:items-center tablet:justify-between">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                scoreRecord.points_awarded > 0 ? 'bg-accent-muted' : 'bg-surface-elevated'
-              }`}>
-                <ReasonIcon className={`h-5 w-5 ${
-                  scoreRecord.points_awarded > 0 ? 'text-accent' : 'text-text-tertiary'
-                }`} aria-hidden="true" />
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                  scoreRecord.points_awarded > 0 ? 'bg-accent-muted' : 'bg-surface-elevated'
+                }`}
+              >
+                <ReasonIcon
+                  className={`h-5 w-5 ${
+                    scoreRecord.points_awarded > 0 ? 'text-accent' : 'text-text-tertiary'
+                  }`}
+                  aria-hidden="true"
+                />
               </div>
               <div>
                 <Badge variant={scoreRecord.points_awarded > 0 ? 'success' : 'default'}>
@@ -148,7 +159,7 @@ export default async function MatchDetailPage({ params }: MatchDetailProps) {
                 </Badge>
               </div>
             </div>
-            <span className="text-display font-extrabold text-accent tabular-nums animate-count-up">
+            <span className="animate-count-up text-display font-extrabold tabular-nums text-accent">
               +{scoreRecord.points_awarded}
             </span>
           </div>
@@ -168,12 +179,17 @@ export default async function MatchDetailPage({ params }: MatchDetailProps) {
 
       {/* Scoring rules */}
       <Card>
-        <h2 className="mb-4 text-stat-label uppercase tracking-wider text-text-secondary">
+        <h2 className="mb-4 text-stat-label uppercase tracking-normal text-text-secondary">
           Scoring Rules
         </h2>
         <ul className="space-y-3">
           {[
-            { label: 'Exact Score', points: fixture.is_star_game ? '10' : '5', icon: Target, color: 'text-success' },
+            {
+              label: 'Exact Score',
+              points: fixture.is_star_game ? '10' : '5',
+              icon: Target,
+              color: 'text-success',
+            },
             { label: 'Correct Outcome', points: '3', icon: Eye, color: 'text-info' },
             { label: 'BTTS Reverse', points: '1', icon: Zap, color: 'text-warning' },
             { label: 'Wrong', points: '0', icon: X, color: 'text-text-tertiary' },
@@ -183,7 +199,9 @@ export default async function MatchDetailPage({ params }: MatchDetailProps) {
                 <RuleIcon className={`h-4 w-4 ${color}`} aria-hidden="true" />
                 <span className="text-body text-text-primary">{label}</span>
               </div>
-              <span className="text-body font-bold tabular-nums text-text-primary">{points} pts</span>
+              <span className="text-body font-bold tabular-nums text-text-primary">
+                {points} pts
+              </span>
             </li>
           ))}
         </ul>

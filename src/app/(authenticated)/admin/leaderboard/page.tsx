@@ -61,7 +61,6 @@ export default function AdminLeaderboardPage() {
   function loadData(gw?: number | null) {
     const supabase = createClient();
     {
-
       // Get active season first
       void supabase
         .from('seasons')
@@ -141,23 +140,29 @@ export default function AdminLeaderboardPage() {
     }
   }
 
-  function loadRecordsForGameweek(supabase: SupabaseClient<Database>, seasonId: string, gw: number) {
+  function loadRecordsForGameweek(
+    supabase: SupabaseClient<Database>,
+    seasonId: string,
+    gw: number,
+  ) {
     void supabase
       .from('score_records')
-      .select(`
+      .select(
+        `
         id, user_id, fixture_id, points_awarded, reason_code,
         is_star_game, manually_edited, predicted_home, predicted_away,
         actual_home, actual_away,
         profiles!score_records_user_id_fkey ( display_name ),
         fixtures!score_records_fixture_id_fkey ( home_team, away_team, gameweek )
-      `)
+      `,
+      )
       .eq('fixtures.season_id', seasonId)
       .eq('fixtures.gameweek', gw)
       .order('points_awarded', { ascending: false })
       .then(({ data }) => {
         type Row = NonNullable<typeof data>[number];
         // Filter out rows where the fixture join returned null (different season/gw)
-        const mapped: ScoreRecord[] = (data ?? [] as Row[])
+        const mapped: ScoreRecord[] = (data ?? ([] as Row[]))
           .filter((r) => r.fixtures !== null)
           .map((r) => ({
             id: r.id,
@@ -171,7 +176,8 @@ export default function AdminLeaderboardPage() {
             predicted_away: r.predicted_away,
             actual_home: r.actual_home,
             actual_away: r.actual_away,
-            display_name: (r.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Unknown',
+            display_name:
+              (r.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Unknown',
             home_team: (r.fixtures as unknown as { home_team: string } | null)?.home_team ?? '',
             away_team: (r.fixtures as unknown as { away_team: string } | null)?.away_team ?? '',
             gameweek: (r.fixtures as unknown as { gameweek: number } | null)?.gameweek ?? gw,
@@ -189,13 +195,13 @@ export default function AdminLeaderboardPage() {
     setEditingId(null);
     const supabase = createClient();
     void supabase
-        .from('seasons')
-        .select('id')
-        .eq('is_active', true)
-        .single()
-        .then(({ data: season }) => {
-          if (season) loadRecordsForGameweek(supabase, season.id, gw);
-        });
+      .from('seasons')
+      .select('id')
+      .eq('is_active', true)
+      .single()
+      .then(({ data: season }) => {
+        if (season) loadRecordsForGameweek(supabase, season.id, gw);
+      });
   }
 
   function startEdit(record: ScoreRecord) {
@@ -233,28 +239,28 @@ export default function AdminLeaderboardPage() {
     const supabase = createClient();
     const from = nextPage * PAGE_SIZE;
     void supabase
-        .from('admin_audit_log')
-        .select('*')
-        .eq('action', 'EDIT_SCORE_RECORD')
-        .order('created_at', { ascending: false })
-        .range(from, from + PAGE_SIZE - 1)
-        .then(({ data }) => {
-          setAuditLog((prev) => [
-            ...prev,
-            ...(data ?? []).map((e) => ({
-              id: e.id,
-              admin_id: e.admin_id,
-              action: e.action,
-              target_type: e.target_type,
-              target_id: e.target_id,
-              old_value: e.old_value as Record<string, unknown> | null,
-              new_value: e.new_value as Record<string, unknown> | null,
-              created_at: e.created_at,
-            })),
-          ]);
-          setHasMoreAudit((data?.length ?? 0) === PAGE_SIZE);
-          setAuditPage(nextPage);
-        });
+      .from('admin_audit_log')
+      .select('*')
+      .eq('action', 'EDIT_SCORE_RECORD')
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1)
+      .then(({ data }) => {
+        setAuditLog((prev) => [
+          ...prev,
+          ...(data ?? []).map((e) => ({
+            id: e.id,
+            admin_id: e.admin_id,
+            action: e.action,
+            target_type: e.target_type,
+            target_id: e.target_id,
+            old_value: e.old_value as Record<string, unknown> | null,
+            new_value: e.new_value as Record<string, unknown> | null,
+            created_at: e.created_at,
+          })),
+        ]);
+        setHasMoreAudit((data?.length ?? 0) === PAGE_SIZE);
+        setAuditPage(nextPage);
+      });
   }
 
   return (
@@ -262,9 +268,7 @@ export default function AdminLeaderboardPage() {
       <h2 className="text-h2 text-text-primary">Leaderboard Management</h2>
 
       {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'error'}>
-          {message.text}
-        </Alert>
+        <Alert variant={message.type === 'success' ? 'success' : 'error'}>{message.text}</Alert>
       )}
 
       {/* Score Records Editor */}
@@ -312,20 +316,21 @@ export default function AdminLeaderboardPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {records.map((record) => (
-                  <tr key={record.id} className={record.manually_edited ? 'bg-warning-muted/30' : ''}>
+                  <tr
+                    key={record.id}
+                    className={record.manually_edited ? 'bg-warning-muted/30' : ''}
+                  >
                     <td className="py-2 pr-3 font-medium text-text-primary">
                       {record.display_name}
                       {record.manually_edited && (
-                        <Badge variant="warning" className="ml-1.5 text-[10px]">
+                        <Badge variant="warning" className="ml-1.5 text-caption">
                           Edited
                         </Badge>
                       )}
                     </td>
                     <td className="py-2 pr-3 text-text-secondary">
                       {record.home_team} vs {record.away_team}
-                      {record.is_star_game && (
-                        <span className="ml-1 text-gold">★</span>
-                      )}
+                      {record.is_star_game && <span className="ml-1 text-gold">★</span>}
                     </td>
                     <td className="py-2 pr-3 tabular-nums text-text-secondary">
                       {record.predicted_home !== null
@@ -413,12 +418,13 @@ export default function AdminLeaderboardPage() {
               Edit History
             </div>
           </CardTitle>
-          <Badge>{auditLog.length}{hasMoreAudit ? '+' : ''}</Badge>
+          <Badge>
+            {auditLog.length}
+            {hasMoreAudit ? '+' : ''}
+          </Badge>
         </CardHeader>
         {auditLog.length === 0 ? (
-          <p className="py-4 text-center text-sm text-text-secondary">
-            No leaderboard edits yet.
-          </p>
+          <p className="py-4 text-center text-sm text-text-secondary">No leaderboard edits yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -436,9 +442,7 @@ export default function AdminLeaderboardPage() {
               <tbody className="divide-y divide-border">
                 {auditLog.map((entry) => (
                   <tr key={entry.id}>
-                    <td className="py-2 pr-3 text-text-primary">
-                      {entry.admin_name ?? 'Admin'}
-                    </td>
+                    <td className="py-2 pr-3 text-text-primary">{entry.admin_name ?? 'Admin'}</td>
                     <td className="py-2 pr-3 font-medium text-text-primary">
                       {(entry.old_value?.display_name as string) ?? '—'}
                     </td>
@@ -448,13 +452,13 @@ export default function AdminLeaderboardPage() {
                     <td className="py-2 pr-3 tabular-nums text-error">
                       {(entry.old_value?.points_awarded as number) ?? '—'}
                     </td>
-                    <td className="py-2 pr-3 tabular-nums text-success font-bold">
+                    <td className="py-2 pr-3 font-bold tabular-nums text-success">
                       {(entry.new_value?.points_awarded as number) ?? '—'}
                     </td>
-                    <td className="py-2 pr-3 text-xs text-text-secondary max-w-[200px] truncate">
+                    <td className="max-w-[200px] truncate py-2 pr-3 text-xs text-text-secondary">
                       {(entry.new_value?.reason as string) ?? '—'}
                     </td>
-                    <td className="py-2 whitespace-nowrap text-xs text-text-secondary">
+                    <td className="whitespace-nowrap py-2 text-xs text-text-secondary">
                       {new Date(entry.created_at).toLocaleString('en-GB')}
                     </td>
                   </tr>

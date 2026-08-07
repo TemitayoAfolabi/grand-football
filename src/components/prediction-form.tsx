@@ -7,9 +7,7 @@ import { Check, AlertTriangle } from 'lucide-react';
 import { LATE_PENALTY } from '@/lib/constants';
 
 /** Compute the current late-penalty tier label and points from the GW deadline. */
-function getCurrentPenalty(
-  gameweekDeadline: Date,
-): { points: number; label: string } | null {
+function getCurrentPenalty(gameweekDeadline: Date): { points: number; label: string } | null {
   const diffMs = Date.now() - gameweekDeadline.getTime();
   if (diffMs <= 0) return null; // still on time
 
@@ -97,8 +95,8 @@ export function PredictionForm({
 
   return (
     <div className="mt-3 border-t border-border-subtle pt-3">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-caption uppercase tracking-wider text-text-secondary">Locks in</span>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-caption uppercase tracking-normal text-text-secondary">Locks in</span>
         <Countdown targetDate={kickoffTime} onExpire={() => setLocked(true)} />
       </div>
 
@@ -109,19 +107,26 @@ export function PredictionForm({
           role="alert"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-          <p className="text-caption text-warning">
-            <span className="font-semibold">Late penalty ({penalty.points} pts):</span>{' '}
-            The gameweek deadline has passed. Saving now ({penalty.label} late) will incur a{' '}
-            <span className="font-bold">{penalty.points}-point</span> penalty for the entire gameweek.
+          <p className="text-body-sm text-warning">
+            <span className="font-semibold">Late penalty ({penalty.points} pts):</span> The gameweek
+            deadline has passed. Saving now ({penalty.label} late) will incur a{' '}
+            <span className="font-bold">{penalty.points}-point</span> penalty for the entire
+            gameweek.
           </p>
         </div>
       )}
 
-      <form ref={formRef} action={handleSubmit} className="flex items-end gap-3">
+      <form
+        ref={formRef}
+        action={handleSubmit}
+        className="flex flex-col gap-3 tablet:flex-row tablet:items-end"
+      >
         <input type="hidden" name="fixtureId" value={fixtureId} />
 
-        <div className="flex items-center gap-3">
-          <label className="sr-only" htmlFor={`home-${fixtureId}`}>Home score</label>
+        <div className="flex w-full items-center justify-between gap-2 tablet:w-auto tablet:justify-start tablet:gap-3">
+          <label className="sr-only" htmlFor={`home-${fixtureId}`}>
+            Home score
+          </label>
           <input
             id={`home-${fixtureId}`}
             name="homeScore"
@@ -131,13 +136,15 @@ export function PredictionForm({
             defaultValue={existingPrediction?.home_score ?? ''}
             placeholder="0"
             required
-            className="score-input h-14 w-18 rounded-input border-2 border-border bg-bg-secondary text-center text-h1 font-extrabold text-text-primary transition-all duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 tabular-nums"
+            className="score-input h-14 w-16 rounded-input border-2 border-border bg-bg-secondary text-center text-h2 font-extrabold tabular-nums text-text-primary transition-all duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 tablet:w-20"
             aria-label="Predicted home score"
           />
 
-          <span className="text-h3 text-text-tertiary">&mdash;</span>
+          <span className="text-h3 text-text-tertiary">-</span>
 
-          <label className="sr-only" htmlFor={`away-${fixtureId}`}>Away score</label>
+          <label className="sr-only" htmlFor={`away-${fixtureId}`}>
+            Away score
+          </label>
           <input
             id={`away-${fixtureId}`}
             name="awayScore"
@@ -147,12 +154,12 @@ export function PredictionForm({
             defaultValue={existingPrediction?.away_score ?? ''}
             placeholder="0"
             required
-            className="score-input h-14 w-18 rounded-input border-2 border-border bg-bg-secondary text-center text-h1 font-extrabold text-text-primary transition-all duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 tabular-nums"
+            className="score-input h-14 w-16 rounded-input border-2 border-border bg-bg-secondary text-center text-h2 font-extrabold tabular-nums text-text-primary transition-all duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 tablet:w-20"
             aria-label="Predicted away score"
           />
         </div>
 
-        <Button type="submit" size="sm" loading={isPending}>
+        <Button type="submit" size="sm" loading={isPending} className="w-full tablet:w-auto">
           {saved ? (
             <>
               <Check className="h-4 w-4" aria-hidden="true" />
@@ -167,7 +174,9 @@ export function PredictionForm({
       </form>
 
       {error && (
-        <p className="mt-2 text-caption text-error" role="alert">{error}</p>
+        <p className="mt-2 text-body-sm text-error" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );

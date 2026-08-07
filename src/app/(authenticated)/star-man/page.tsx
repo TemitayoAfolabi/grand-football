@@ -82,9 +82,7 @@ export default async function StarManPage() {
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <Star className="h-10 w-10 text-gold" aria-hidden="true" />
               <h2 className="text-h2 text-text-primary">Voting Has Ended</h2>
-              <p className="text-body-sm text-text-secondary">
-                Results will be revealed soon.
-              </p>
+              <p className="text-body-sm text-text-secondary">Results will be revealed soon.</p>
             </div>
           </Card>
         </div>
@@ -165,39 +163,41 @@ export default async function StarManPage() {
             </p>
           </div>
         </Card>
-      ) : topWinner && (
-        <Card variant="gold">
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-muted">
-              <Award className="h-8 w-8 text-gold" aria-hidden="true" />
+      ) : (
+        topWinner && (
+          <Card variant="gold">
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-muted">
+                <Award className="h-8 w-8 text-gold" aria-hidden="true" />
+              </div>
+              {isTie ? (
+                <>
+                  <Badge variant="star">It&apos;s a Tie!</Badge>
+                  <div className="space-y-3">
+                    {winners.map((w) => (
+                      <div key={w.nominee_id}>
+                        <h2 className="text-h2 text-text-primary">{w.player_name}</h2>
+                        <p className="text-body-sm text-text-secondary">{w.team_name}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-stat font-bold tabular-nums text-gold">
+                    {topWinner?.vote_count} votes each
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Badge variant="star">Star Man</Badge>
+                  <h2 className="mt-2 text-h2 text-text-primary">{topWinner?.player_name}</h2>
+                  <p className="text-body-sm text-text-secondary">{topWinner?.team_name}</p>
+                  <p className="text-stat font-bold tabular-nums text-gold">
+                    {topWinner?.vote_count} vote{topWinner?.vote_count !== 1 ? 's' : ''}
+                  </p>
+                </>
+              )}
             </div>
-            {isTie ? (
-              <>
-                <Badge variant="star">It&apos;s a Tie!</Badge>
-                <div className="space-y-3">
-                  {winners.map((w) => (
-                    <div key={w.nominee_id}>
-                      <h2 className="text-h2 text-text-primary">{w.player_name}</h2>
-                      <p className="text-body-sm text-text-secondary">{w.team_name}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-stat font-bold tabular-nums text-gold">
-                  {topWinner?.vote_count} votes each
-                </p>
-              </>
-            ) : (
-              <>
-                <Badge variant="star">Star Man</Badge>
-                <h2 className="mt-2 text-h2 text-text-primary">{topWinner?.player_name}</h2>
-                <p className="text-body-sm text-text-secondary">{topWinner?.team_name}</p>
-                <p className="text-stat font-bold tabular-nums text-gold">
-                  {topWinner?.vote_count} vote{topWinner?.vote_count !== 1 ? 's' : ''}
-                </p>
-              </>
-            )}
-          </div>
-        </Card>
+          </Card>
+        )
       )}
 
       {/* Full rankings */}
@@ -208,7 +208,8 @@ export default async function StarManPage() {
         <div className="space-y-2">
           {results?.map((entry) => {
             const isUserVote = userVote?.nominee_id === entry.nominee_id;
-            const percentage = totalVotes > 0 ? Math.round((entry.vote_count / totalVotes) * 100) : 0;
+            const percentage =
+              totalVotes > 0 ? Math.round((entry.vote_count / totalVotes) * 100) : 0;
 
             return (
               <div
@@ -226,11 +227,9 @@ export default async function StarManPage() {
                     <p className="truncate text-body-sm font-medium text-text-primary">
                       {entry.player_name}
                     </p>
-                    {isUserVote && (
-                      <Badge variant="points">Your pick</Badge>
-                    )}
+                    {isUserVote && <Badge variant="points">Your pick</Badge>}
                   </div>
-                  <p className="text-xs text-text-secondary">{entry.team_name}</p>
+                  <p className="truncate text-body-sm text-text-secondary">{entry.team_name}</p>
                   {/* Vote bar */}
                   <div className="mt-1.5 h-1.5 w-full rounded-full bg-surface-elevated">
                     <div
@@ -246,7 +245,7 @@ export default async function StarManPage() {
                   <p className="text-body-sm font-bold tabular-nums text-text-primary">
                     {entry.vote_count}
                   </p>
-                  <p className="text-xs tabular-nums text-text-secondary">{percentage}%</p>
+                  <p className="text-body-sm tabular-nums text-text-secondary">{percentage}%</p>
                 </div>
               </div>
             );
