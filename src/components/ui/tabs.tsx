@@ -21,7 +21,7 @@ export function Tabs({ tabs, defaultTab, className }: TabsProps) {
   return (
     <div className={className}>
       <div
-        className="relative flex gap-1 rounded-card bg-bg-secondary p-1"
+        className="hide-scrollbar relative flex gap-1 overflow-x-auto rounded-card bg-bg-secondary p-1"
         role="tablist"
         aria-label="Tab navigation"
       >
@@ -33,10 +33,10 @@ export function Tabs({ tabs, defaultTab, className }: TabsProps) {
             aria-controls={`tabpanel-${tab.id}`}
             id={`tab-${tab.id}`}
             className={cn(
-              'flex-1 rounded-input px-4 py-2.5 text-body-sm font-medium transition-all duration-250 ease-out',
+              'min-w-[112px] flex-1 whitespace-nowrap rounded-input px-4 py-2.5 text-body-sm font-semibold transition-all duration-200 ease-out',
               activeTab === tab.id
                 ? 'bg-accent text-text-inverse shadow-sm'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface/50',
+                : 'text-text-secondary hover:bg-surface/50 hover:text-text-primary',
             )}
             onClick={() => setActiveTab(tab.id)}
           >

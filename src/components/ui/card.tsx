@@ -30,8 +30,9 @@ export function Card({
       className={cn(
         'rounded-card border transition-all duration-200',
         variantStyles[variant],
-        !noPadding && 'p-5',
-        hoverable && 'desktop:hover:-translate-y-[3px] desktop:hover:shadow-card-hover cursor-pointer active:scale-[0.97]',
+        !noPadding && 'p-4 tablet:p-5',
+        hoverable &&
+          'cursor-pointer active:scale-[0.97] desktop:hover:-translate-y-[3px] desktop:hover:shadow-card-hover',
         className,
       )}
       {...props}

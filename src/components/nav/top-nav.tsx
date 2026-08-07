@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Calendar, Trophy, User, Shield, Award } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Home, Calendar, Trophy, User, Shield, Award, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 import type { Route } from 'next';
 
 const items: { href: Route; label: string; Icon: typeof Home }[] = [
@@ -20,6 +22,17 @@ interface TopNavProps {
 
 export function TopNav({ isAdmin = false }: TopNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  function handleSignOut() {
+    setIsSigningOut(true);
+    const supabase = createClient();
+    void supabase.auth.signOut().then(() => {
+      router.replace('/login');
+      router.refresh();
+    });
+  }
 
   return (
     <nav
@@ -39,9 +52,9 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
                 <Link
                   href={href}
                   className={cn(
-                    'flex items-center gap-2 rounded-input px-3 py-2 text-body-sm transition-all duration-150',
+                    'flex items-center gap-2 rounded-input px-3 py-2 text-body-sm font-semibold transition-all duration-150',
                     isActive
-                      ? 'bg-accent-muted text-accent font-medium'
+                      ? 'bg-accent-muted font-medium text-accent'
                       : 'text-text-secondary hover:bg-surface-elevated/30 hover:text-text-primary',
                   )}
                   aria-current={isActive ? 'page' : undefined}
@@ -57,9 +70,9 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
               <Link
                 href={'/admin' as Route}
                 className={cn(
-                  'flex items-center gap-2 rounded-input px-3 py-2 text-body-sm transition-all duration-150',
+                  'flex items-center gap-2 rounded-input px-3 py-2 text-body-sm font-semibold transition-all duration-150',
                   pathname.startsWith('/admin')
-                    ? 'bg-accent-muted text-accent font-medium'
+                    ? 'bg-accent-muted font-medium text-accent'
                     : 'text-text-secondary hover:bg-surface-elevated/30 hover:text-text-primary',
                 )}
                 aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
@@ -69,6 +82,18 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
               </Link>
             </li>
           )}
+          <li className="ml-2 border-l border-border-subtle pl-2">
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex items-center gap-2 rounded-input px-3 py-2 text-body-sm font-semibold text-text-secondary transition-all duration-150 hover:bg-error-muted hover:text-error disabled:pointer-events-none disabled:opacity-50"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              {isSigningOut ? 'Signing out' : 'Sign out'}
+            </button>
+          </li>
         </ul>
       </div>
     </nav>

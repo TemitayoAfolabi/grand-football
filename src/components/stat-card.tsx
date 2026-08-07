@@ -10,16 +10,23 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ icon: Icon, label, value, trend, trendValue, className }: StatCardProps) {
+export function StatCard({
+  icon: Icon,
+  label,
+  value,
+  trend,
+  trendValue,
+  className,
+}: StatCardProps) {
   return (
     <div
       className={cn(
-        'rounded-card border border-border bg-surface p-4 shadow-card',
+        'rounded-card border border-border bg-surface p-3 shadow-card tablet:p-4',
         className,
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-card bg-accent-muted">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card bg-accent-muted tablet:h-10 tablet:w-10">
           <Icon className="h-5 w-5 text-accent" aria-hidden="true" />
         </div>
         {trend && trendValue && (
@@ -37,9 +44,9 @@ export function StatCard({ icon: Icon, label, value, trend, trendValue, classNam
           </span>
         )}
       </div>
-      <div className="mt-3">
+      <div className="mt-3 min-w-0">
         <p className="text-stat font-bold tabular-nums text-text-primary">{value}</p>
-        <p className="mt-0.5 text-stat-label uppercase tracking-wider text-text-secondary">
+        <p className="mt-1 truncate text-stat-label uppercase tracking-normal text-text-secondary">
           {label}
         </p>
       </div>

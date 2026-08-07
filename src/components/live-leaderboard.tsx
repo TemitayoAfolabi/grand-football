@@ -4,10 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useLiveFixtures } from '@/hooks/use-live-fixtures';
 import { useGameweekPredictions } from '@/hooks/use-gameweek-predictions';
-import {
-  useProvisionalScoring,
-  type SeasonEntry,
-} from '@/hooks/use-provisional-scoring';
+import { useProvisionalScoring, type SeasonEntry } from '@/hooks/use-provisional-scoring';
 import { LeaderboardTable } from '@/components/leaderboard-table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,9 +52,7 @@ export function LiveLeaderboard({
   }, [seasonId, currentGameweek]);
 
   // Count finished fixtures to trigger re-fetch of season entries
-  const finishedCount = fixtures.filter(
-    (f) => f.status === 'FINISHED',
-  ).length;
+  const finishedCount = fixtures.filter((f) => f.status === 'FINISHED').length;
 
   // Fetch confirmed season leaderboard for season provisional view
   // Re-fetches when finishedCount changes (a match just ended + scores recalculated)
@@ -87,12 +82,9 @@ export function LiveLeaderboard({
     customDeadline,
   );
 
-  const hasLiveMatches = fixtures.some(
-    (f) => f.status === 'IN_PLAY' || f.status === 'PAUSED',
-  );
+  const hasLiveMatches = fixtures.some((f) => f.status === 'IN_PLAY' || f.status === 'PAUSED');
 
-  const currentLeaderboard =
-    activeTab === 'weekly' ? weeklyLeaderboard : seasonLeaderboard;
+  const currentLeaderboard = activeTab === 'weekly' ? weeklyLeaderboard : seasonLeaderboard;
 
   const mappedEntries = currentLeaderboard.map((e) => ({
     rank: e.rank,
@@ -118,7 +110,7 @@ export function LiveLeaderboard({
   return (
     <div className="space-y-4">
       {/* Header with live badge and connection status */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
         <div className="flex items-center gap-2">
           {hasLiveMatches && <Badge variant="live">LIVE</Badge>}
           <span className="text-h3 font-semibold text-text-primary">
@@ -127,10 +119,7 @@ export function LiveLeaderboard({
         </div>
         <div className="flex items-center gap-2">
           {isConnected ? (
-            <Wifi
-              className="h-4 w-4 text-success"
-              aria-label="Connected to live updates"
-            />
+            <Wifi className="h-4 w-4 text-success" aria-label="Connected to live updates" />
           ) : (
             <WifiOff
               className="h-4 w-4 text-text-tertiary"
@@ -156,7 +145,11 @@ export function LiveLeaderboard({
       )}
 
       {/* Weekly / Season tabs */}
-      <div className="flex gap-1 rounded-card bg-bg-secondary p-1" role="tablist" aria-label="Leaderboard view">
+      <div
+        className="flex gap-1 rounded-card bg-bg-secondary p-1"
+        role="tablist"
+        aria-label="Leaderboard view"
+      >
         {(['weekly', 'season'] as const).map((tab) => (
           <button
             key={tab}
@@ -166,10 +159,10 @@ export function LiveLeaderboard({
             id={`live-tab-${tab}`}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'flex-1 rounded-input px-4 py-2.5 text-body-sm font-medium transition-all duration-250 ease-out',
+              'flex-1 rounded-input px-4 py-2.5 text-body-sm font-semibold transition-all duration-200 ease-out',
               activeTab === tab
                 ? 'bg-accent text-text-inverse shadow-sm'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface/50',
+                : 'text-text-secondary hover:bg-surface/50 hover:text-text-primary',
             )}
           >
             {tab === 'weekly' ? 'Weekly' : 'Season'}
@@ -189,19 +182,12 @@ export function LiveLeaderboard({
       {/* Expandable fixture breakdown per user (weekly tab only) */}
       {activeTab === 'weekly' && weeklyLeaderboard.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-body-sm font-medium text-text-secondary">
-            Score Breakdown
-          </h4>
+          <h4 className="text-body-sm font-medium text-text-secondary">Score Breakdown</h4>
           {weeklyLeaderboard.map((entry) => (
-            <div
-              key={entry.user_id}
-              className="rounded-card border border-border bg-surface"
-            >
+            <div key={entry.user_id} className="rounded-card border border-border bg-surface">
               <button
                 onClick={() =>
-                  setExpandedUser(
-                    expandedUser === entry.user_id ? null : entry.user_id,
-                  )
+                  setExpandedUser(expandedUser === entry.user_id ? null : entry.user_id)
                 }
                 className="flex w-full items-center justify-between px-4 py-3 text-left"
                 aria-expanded={expandedUser === entry.user_id}
@@ -251,12 +237,7 @@ export function LiveLeaderboard({
                         <span className="text-text-tertiary">
                           ({b.predicted_home}-{b.predicted_away})
                         </span>
-                        <Badge
-                          variant={b.points > 0 ? 'points' : 'default'}
-                          className="text-[11px]"
-                        >
-                          +{b.points}
-                        </Badge>
+                        <Badge variant={b.points > 0 ? 'points' : 'default'}>+{b.points}</Badge>
                       </div>
                     </div>
                   ))}

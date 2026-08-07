@@ -56,7 +56,7 @@ export function FixtureCard({
       )}
     >
       {/* Status row */}
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {fixture.is_star_game && <Badge variant="star">Star Game</Badge>}
         {isLive && <Badge variant="live">Live</Badge>}
         {kickedOff && !isFinished && !isLive && (
@@ -78,57 +78,57 @@ export function FixtureCard({
         href={`/match/${fixture.id}`}
         className="block rounded-input focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
-        <div className="flex items-center justify-between gap-3 py-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-2 tablet:gap-3">
           {/* Home team */}
-          <div className="flex flex-1 items-center gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-2 tablet:gap-3">
             {fixture.home_team_crest && (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-elevated">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-elevated tablet:h-10 tablet:w-10">
                 <Image
                   src={fixture.home_team_crest}
                   alt=""
                   width={24}
                   height={24}
-                  className="h-6 w-6 object-contain"
+                  className="h-6 w-6 object-contain tablet:h-7 tablet:w-7"
                 />
               </div>
             )}
-            <span className="truncate text-body font-semibold text-text-primary">
+            <span className="truncate text-body-sm font-semibold text-text-primary tablet:text-body">
               {fixture.home_team}
             </span>
           </div>
 
           {/* Score / Time */}
-          <div className="flex items-center gap-2 text-center tabular-nums">
+          <div className="flex min-w-[76px] items-center justify-center gap-1.5 text-center tabular-nums tablet:min-w-[96px] tablet:gap-2">
             {isFinished || isLive ? (
               <>
-                <span className="min-w-[28px] text-h2 font-extrabold text-text-primary">
+                <span className="min-w-[24px] text-h3 font-extrabold text-text-primary tablet:min-w-[28px] tablet:text-h2">
                   {fixture.home_score}
                 </span>
-                <span className="text-text-tertiary text-body">-</span>
-                <span className="min-w-[28px] text-h2 font-extrabold text-text-primary">
+                <span className="text-body text-text-tertiary">-</span>
+                <span className="min-w-[24px] text-h3 font-extrabold text-text-primary tablet:min-w-[28px] tablet:text-h2">
                   {fixture.away_score}
                 </span>
               </>
             ) : (
-              <span className="text-body-sm text-text-secondary">
+              <span className="text-center text-caption text-text-secondary tablet:text-body-sm">
                 {formatKickoffRelative(fixture.kickoff_time)}
               </span>
             )}
           </div>
 
           {/* Away team */}
-          <div className="flex flex-1 items-center justify-end gap-3 min-w-0">
-            <span className="truncate text-body font-semibold text-text-primary">
+          <div className="flex min-w-0 items-center justify-end gap-2 tablet:gap-3">
+            <span className="truncate text-right text-body-sm font-semibold text-text-primary tablet:text-body">
               {fixture.away_team}
             </span>
             {fixture.away_team_crest && (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-elevated">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-elevated tablet:h-10 tablet:w-10">
                 <Image
                   src={fixture.away_team_crest}
                   alt=""
                   width={24}
                   height={24}
-                  className="h-6 w-6 object-contain"
+                  className="h-6 w-6 object-contain tablet:h-7 tablet:w-7"
                 />
               </div>
             )}

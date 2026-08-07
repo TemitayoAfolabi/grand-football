@@ -41,16 +41,16 @@ export async function StarManCard() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-body-sm font-medium text-text-primary">Star Man Vote</p>
+                <p className="text-body font-semibold text-text-primary">Star Man Vote</p>
                 <Badge variant="star">Open</Badge>
               </div>
               {!deadlinePassed ? (
                 <div className="mt-1 flex items-center gap-1">
-                  <span className="text-xs text-text-secondary">Closes in:</span>
+                  <span className="text-body-sm text-text-secondary">Closes in:</span>
                   <Countdown targetDate={session.deadline} />
                 </div>
               ) : (
-                <p className="mt-1 text-xs text-text-secondary">Voting has ended</p>
+                <p className="mt-1 text-body-sm text-text-secondary">Voting has ended</p>
               )}
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-text-tertiary" aria-hidden="true" />
@@ -77,12 +77,12 @@ export async function StarManCard() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-body-sm font-medium text-text-primary">Star Man Winner</p>
+              <p className="text-body font-semibold text-text-primary">Star Man Winner</p>
               <Badge variant="star">Result</Badge>
             </div>
-            <p className="mt-1 text-xs text-text-secondary">
-              <span className="font-semibold text-gold">{winner.player_name}</span>
-              {' '}— {winner.team_name}
+            <p className="mt-1 truncate text-body-sm text-text-secondary">
+              <span className="font-semibold text-gold">{winner.player_name}</span> —{' '}
+              {winner.team_name}
             </p>
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-text-tertiary" aria-hidden="true" />

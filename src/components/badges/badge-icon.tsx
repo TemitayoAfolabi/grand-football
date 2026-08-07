@@ -17,7 +17,13 @@ const sizeMap = {
   lg: { container: 'h-20 w-20', icon: 'text-3xl', ring: 'ring-2' },
 };
 
-export function BadgeIcon({ badge, earned, size = 'md', showTooltip = true, className }: BadgeIconProps) {
+export function BadgeIcon({
+  badge,
+  earned,
+  size = 'md',
+  showTooltip = true,
+  className,
+}: BadgeIconProps) {
   const tier = TIER_CONFIG[badge.tier];
   const s = sizeMap[size];
 
@@ -34,7 +40,7 @@ export function BadgeIcon({ badge, earned, size = 'md', showTooltip = true, clas
           s.container,
           earned
             ? [tier.bgClass, tier.borderClass, 'border', tier.glowClass]
-            : 'bg-surface-elevated border border-border-subtle opacity-40 grayscale',
+            : 'border border-border-subtle bg-surface-elevated opacity-40 grayscale',
           earned && badge.tier === 'legendary' && 'animate-pulse-glow',
         )}
         role="img"
@@ -51,17 +57,22 @@ export function BadgeIcon({ badge, earned, size = 'md', showTooltip = true, clas
           className={cn(
             'pointer-events-none absolute -top-2 left-1/2 z-50 -translate-x-1/2 -translate-y-full',
             'w-48 rounded-card border border-border bg-surface-elevated p-3 shadow-card',
-            'opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100',
+            'opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100',
           )}
           role="tooltip"
         >
-          <p className={cn('text-body-sm font-semibold', earned ? tier.color : 'text-text-secondary')}>
+          <p
+            className={cn(
+              'text-body-sm font-semibold',
+              earned ? tier.color : 'text-text-secondary',
+            )}
+          >
             {badge.name}
           </p>
           <p className="mt-0.5 text-caption text-text-tertiary">{badge.description}</p>
           <span
             className={cn(
-              'mt-1.5 inline-block rounded-pill px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest',
+              'mt-1.5 inline-block rounded-pill px-2 py-0.5 text-caption font-bold uppercase tracking-normal',
               earned ? [tier.bgClass, tier.color] : 'bg-surface text-text-disabled',
             )}
           >
@@ -95,7 +106,7 @@ export function BadgeChip({ badge, className }: BadgeChipProps) {
       aria-label={badge.name}
       title={`${badge.name}: ${badge.description}`}
     >
-      <span className="text-[11px]" aria-hidden="true">
+      <span className="text-caption" aria-hidden="true">
         {badge.icon}
       </span>
     </span>

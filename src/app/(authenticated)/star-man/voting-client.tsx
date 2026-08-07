@@ -62,17 +62,17 @@ export function VotingClient({
   return (
     <div className="space-y-6">
       {/* Countdown */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
         <p className="text-body-sm text-text-secondary">
-          {hasVoted ? 'Your vote is in! You can change it until the deadline.' : 'Voting closes in:'}
+          {hasVoted
+            ? 'Your vote is in! You can change it until the deadline.'
+            : 'Voting closes in:'}
         </p>
         <Countdown targetDate={deadline} onExpire={() => setExpired(true)} />
       </div>
 
       {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'error'}>
-          {message.text}
-        </Alert>
+        <Alert variant={message.type === 'success' ? 'success' : 'error'}>{message.text}</Alert>
       )}
 
       {/* Nominee cards */}
@@ -90,11 +90,11 @@ export function VotingClient({
               }}
               disabled={expired}
               className={cn(
-                'relative flex items-center gap-3 rounded-card border p-4 text-left transition-all duration-200',
+                'relative flex items-center gap-3 rounded-card border p-4 pr-4 text-left transition-all duration-200',
                 isSelected
                   ? 'border-accent bg-accent/10 shadow-glow-accent'
                   : 'border-border bg-surface hover:border-accent/30 hover:bg-surface-elevated/50',
-                expired && 'opacity-50 cursor-not-allowed',
+                expired && 'cursor-not-allowed opacity-50',
               )}
               aria-pressed={isSelected}
             >
@@ -102,16 +102,16 @@ export function VotingClient({
                 <User className="h-5 w-5 text-text-tertiary" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-body-sm font-medium text-text-primary">
+                <p className="truncate text-body font-semibold text-text-primary">
                   {nominee.player_name}
                 </p>
-                <p className="truncate text-xs text-text-secondary">{nominee.team_name}</p>
+                <p className="truncate text-body-sm text-text-secondary">{nominee.team_name}</p>
               </div>
               {isSelected && (
                 <CheckCircle className="h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
               )}
               {isCurrentVote && (
-                <Badge variant="success" className="absolute right-2 top-2">
+                <Badge variant="success" className="shrink-0">
                   Your vote
                 </Badge>
               )}
@@ -137,10 +137,8 @@ export function VotingClient({
       {hasVoted && !isChanging && !expired && (
         <div className="rounded-card border border-success/30 bg-success-muted p-4 text-center">
           <CheckCircle className="mx-auto mb-2 h-6 w-6 text-success" aria-hidden="true" />
-          <p className="text-body-sm font-medium text-text-primary">
-            Your vote has been recorded
-          </p>
-          <p className="mt-1 text-xs text-text-secondary">
+          <p className="text-body-sm font-medium text-text-primary">Your vote has been recorded</p>
+          <p className="mt-1 text-body-sm text-text-secondary">
             Tap a different nominee to change your vote.
           </p>
         </div>

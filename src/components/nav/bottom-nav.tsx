@@ -26,7 +26,7 @@ export function BottomNav({ isAdmin = false }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-bg-primary/85 backdrop-blur-lg pb-safe tablet:hidden"
+      className="bg-bg-primary/92 pb-safe fixed bottom-0 left-0 right-0 z-50 border-t border-border backdrop-blur-xl tablet:hidden"
       aria-label="Main navigation"
     >
       <ul className="flex list-none items-center justify-around">
@@ -37,18 +37,21 @@ export function BottomNav({ isAdmin = false }: BottomNavProps) {
               <Link
                 href={href}
                 className={cn(
-                  'relative flex flex-col items-center gap-0.5 rounded-input border border-transparent py-2.5 text-nav transition-all duration-200',
-                  isAdmin ? 'px-1' : 'px-2',
+                  'relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-input border border-transparent py-2 text-nav transition-all duration-200',
+                  isAdmin ? 'px-0.5' : 'px-1',
                   isActive
-                    ? 'bg-accent/10 border-accent/30 text-accent font-bold'
-                    : 'text-text-tertiary hover:text-text-secondary hover:border-border hover:bg-surface-elevated/50',
+                    ? 'border-accent/30 bg-accent/10 font-bold text-accent'
+                    : 'text-text-tertiary hover:border-border hover:bg-surface-elevated/50 hover:text-text-secondary',
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
-                <Icon className={cn('h-5 w-5', isAdmin && 'h-4 w-4')} aria-hidden="true" />
-                <span className="whitespace-nowrap">{label}</span>
+                <Icon className={cn('h-5 w-5 shrink-0', isAdmin && 'h-4 w-4')} aria-hidden="true" />
+                <span className="max-w-full truncate whitespace-nowrap">{label}</span>
                 {isActive && (
-                  <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent" aria-hidden="true" />
+                  <span
+                    className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent"
+                    aria-hidden="true"
+                  />
                 )}
               </Link>
             </li>

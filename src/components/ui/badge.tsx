@@ -1,7 +1,15 @@
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
-type BadgeVariant = 'default' | 'star' | 'live' | 'locked' | 'success' | 'warning' | 'error' | 'points';
+type BadgeVariant =
+  | 'default'
+  | 'star'
+  | 'live'
+  | 'locked'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'points';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
@@ -22,7 +30,7 @@ export function Badge({ className, variant = 'default', children, ...props }: Ba
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-caption font-medium tracking-wide',
+        'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-caption font-semibold tracking-normal',
         variantStyles[variant],
         className,
       )}
