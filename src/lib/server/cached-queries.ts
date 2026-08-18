@@ -8,7 +8,9 @@ import { createClient } from '@/lib/supabase/server';
  */
 export const getCachedUser = cache(async () => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user;
 });
 
@@ -19,19 +21,21 @@ export const getCachedProfile = cache(async (userId: string) => {
   const supabase = createClient();
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, display_name, avatar_url, force_password_change, featured_badges')
+    .select('id, display_name, avatar_url, force_password_change, featured_badges, is_admin')
     .eq('id', userId)
     .single();
   return profile;
 });
 
 /**
- * Cached admin check - deduplicates is_admin RPC calls within a single request
+ * Cached admin check - reuses the user and profile reads within a single request
  */
 export const getCachedIsAdmin = cache(async () => {
-  const supabase = createClient();
-  const { data: isAdmin } = await supabase.rpc('is_admin');
-  return !!isAdmin;
+  const user = await getCachedUser();
+  if (!user) return false;
+
+  const profile = await getCachedProfile(user.id);
+  return !!profile?.is_admin;
 });
 
 /**
