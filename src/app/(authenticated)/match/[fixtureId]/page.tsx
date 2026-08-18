@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScoreDisplay } from '@/components/score-display';
 import { GlowDivider } from '@/components/glow-divider';
 import { REASON_EXPLANATIONS, REASON_LABELS } from '@/lib/scoring/explanations';
-import { formatKickoffTime } from '@/lib/utils';
+import { formatKickoffTime } from '@/lib/date-utils';
 import { Star, ChevronLeft, Target, Eye, Zap, X } from 'lucide-react';
 import type { ReasonCode } from '@/lib/scoring/types';
 import Link from 'next/link';

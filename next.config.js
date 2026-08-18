@@ -4,17 +4,17 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "crests.football-data.org",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'crests.football-data.org',
+        pathname: '/**',
       },
       {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
       },
     ],
-    formats: ["image/webp", "image/avif"],
+    formats: ['image/webp', 'image/avif'],
   },
 
   // Security headers
@@ -22,41 +22,47 @@ const nextConfig = {
     return [
       {
         // Service worker must be served with correct scope header
-        source: "/sw.js",
+        source: '/sw.js',
         headers: [
-          { key: "Service-Worker-Allowed", value: "/" },
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
       {
-        source: "/(.*)",
+        source: '/icons/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' },
+        ],
+      },
+      {
+        source: '/(.*)',
         headers: [
           {
-            key: "X-DNS-Prefetch-Control",
-            value: "on",
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
           },
           {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
           {
-            key: "X-Frame-Options",
-            value: "SAMEORIGIN",
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
           },
           {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
           },
           {
-            key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
           },
           {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
           {
-            key: "Content-Security-Policy",
+            key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -66,7 +72,7 @@ const nextConfig = {
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
               "worker-src 'self'",
               "frame-ancestors 'none'",
-            ].join("; "),
+            ].join('; '),
           },
         ],
       },
@@ -84,7 +90,9 @@ const nextConfig = {
     // Type-safe server actions
     typedRoutes: true,
     staleTimes: {
-      dynamic: 0,
+      // Keep recently visited dynamic pages in the client router cache briefly.
+      // Live match data continues to update through realtime/polling.
+      dynamic: 30,
     },
   },
 };

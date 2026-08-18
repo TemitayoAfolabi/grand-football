@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useFormStatus } from 'react-dom';
 import { Home, Calendar, Trophy, User, Shield, Award, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
 import type { Route } from 'next';
+import { signOut } from '@/app/(authenticated)/actions';
 
 const items: { href: Route; label: string; Icon: typeof Home }[] = [
   { href: '/' as Route, label: 'Dashboard', Icon: Home },
@@ -22,17 +22,6 @@ interface TopNavProps {
 
 export function TopNav({ isAdmin = false }: TopNavProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  function handleSignOut() {
-    setIsSigningOut(true);
-    const supabase = createClient();
-    void supabase.auth.signOut().then(() => {
-      router.replace('/login');
-      router.refresh();
-    });
-  }
 
   return (
     <nav
@@ -83,19 +72,28 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
             </li>
           )}
           <li className="ml-2 border-l border-border-subtle pl-2">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="flex items-center gap-2 rounded-input px-3 py-2 text-body-sm font-semibold text-text-secondary transition-all duration-150 hover:bg-error-muted hover:text-error disabled:pointer-events-none disabled:opacity-50"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              {isSigningOut ? 'Signing out' : 'Sign out'}
-            </button>
+            <form action={signOut}>
+              <SignOutButton />
+            </form>
           </li>
         </ul>
       </div>
     </nav>
+  );
+}
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex items-center gap-2 rounded-input px-3 py-2 text-body-sm font-semibold text-text-secondary transition-all duration-150 hover:bg-error-muted hover:text-error disabled:pointer-events-none disabled:opacity-50"
+      aria-label="Sign out"
+    >
+      <LogOut className="h-4 w-4" aria-hidden="true" />
+      {pending ? 'Signing out' : 'Sign out'}
+    </button>
   );
 }

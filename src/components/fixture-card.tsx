@@ -4,7 +4,8 @@ import { Lock, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Countdown } from '@/components/countdown';
-import { cn, formatKickoffRelative } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { formatKickoffRelative } from '@/lib/date-utils';
 import { REASON_LABELS } from '@/lib/scoring/explanations';
 import type { ReasonCode } from '@/lib/scoring/types';
 

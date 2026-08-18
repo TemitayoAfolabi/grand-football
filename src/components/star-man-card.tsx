@@ -6,23 +6,27 @@ import { Star, ChevronRight, Award } from 'lucide-react';
 import Link from 'next/link';
 import type { Route } from 'next';
 
-export async function StarManCard() {
+export async function StarManCard({ seasonId }: { seasonId?: string } = {}) {
   const supabase = createClient();
 
-  // Get active season
-  const { data: season } = await supabase
-    .from('seasons')
-    .select('id')
-    .eq('is_active', true)
-    .single();
+  let activeSeasonId = seasonId;
 
-  if (!season) return null;
+  if (!activeSeasonId) {
+    const { data: season } = await supabase
+      .from('seasons')
+      .select('id')
+      .eq('is_active', true)
+      .single();
+    activeSeasonId = season?.id;
+  }
+
+  if (!activeSeasonId) return null;
 
   // Get session for active season
   const { data: session } = await supabase
     .from('star_man_sessions')
     .select('id, status, deadline')
-    .eq('season_id', season.id)
+    .eq('season_id', activeSeasonId)
     .single();
 
   // No session or DRAFT — render nothing

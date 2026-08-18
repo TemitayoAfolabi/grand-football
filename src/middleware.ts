@@ -32,8 +32,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Allowlist check — verify user's email is in the allowlist
-  const isAllowlisted = await isAllowlistedEmail(user.email ?? '');
+  // These checks are independent, so run them together instead of adding two
+  // sequential network round trips to every navigation.
+  const [isAllowlisted, { data: profile }] = await Promise.all([
+    isAllowlistedEmail(user.email ?? ''),
+    supabase.from('profiles').select('force_password_change, is_admin').eq('id', user.id).single(),
+  ]);
+
   if (!isAllowlisted) {
     await supabase.auth.signOut();
     const url = request.nextUrl.clone();
@@ -41,13 +46,6 @@ export async function middleware(request: NextRequest) {
     url.searchParams.set('error', 'not_allowed');
     return NextResponse.redirect(url);
   }
-
-  // Force password change check — redirect to set-password page
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('force_password_change')
-    .eq('id', user.id)
-    .single();
 
   if (profile?.force_password_change) {
     const url = request.nextUrl.clone();
@@ -58,8 +56,7 @@ export async function middleware(request: NextRequest) {
 
   // Admin routes — check is_admin
   if (pathname.startsWith('/admin')) {
-    const { data: isAdmin } = await supabase.rpc('is_admin');
-    if (!isAdmin) {
+    if (!profile?.is_admin) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
       return NextResponse.redirect(url);
@@ -74,10 +71,9 @@ export const config = {
     /*
      * Match all request paths except:
      * - _next (all Next.js internals: static chunks, CSS, image, HMR, etc.)
-     * - favicon.ico (favicon file)
-     * - public assets
+     * - public files (service worker, manifest, icons, fonts, etc.)
      * - API cron routes (authenticated by CRON_SECRET)
      */
-    '/((?!_next|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/cron).*)',
+    '/((?!_next|api/cron|.*\\.[a-zA-Z0-9]+$).*)',
   ],
 };

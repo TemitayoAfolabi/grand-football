@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { LeaderboardTable } from '@/components/leaderboard-table';
 import { Podium } from '@/components/podium';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatMonth } from '@/lib/utils';
+import { formatMonth } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
