@@ -50,47 +50,61 @@ export default function AdminFixturesPage() {
 
   // Load fixtures, season, and deadlines
   const loadData = useCallback(() => {
-    void import('@supabase/ssr').then(({ createBrowserClient }) => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      );
+    void import('@supabase/ssr')
+      .then(async ({ createBrowserClient }) => {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        );
 
-      // Fetch active season
-      void supabase
-        .from('seasons')
-        .select('id')
-        .eq('is_active', true)
-        .single()
-        .then(({ data: season }) => {
-          if (season) {
-            setSeasonId(season.id as string);
-            // Fetch custom deadlines for this season
-            void supabase
+        const { data: season, error: seasonError } = await supabase
+          .from('seasons')
+          .select('id')
+          .eq('is_active', true)
+          .single();
+
+        if (seasonError || !season) {
+          throw new Error(seasonError?.message ?? 'No active season found.');
+        }
+
+        const activeSeasonId = season.id as string;
+        setSeasonId(activeSeasonId);
+
+        const [{ data: dls, error: deadlinesError }, { data: fixtureRows, error: fixturesError }] =
+          await Promise.all([
+            supabase
               .from('gameweek_deadlines')
               .select('season_id, gameweek, deadline')
-              .eq('season_id', season.id)
-              .then(({ data: dls }) => {
-                const map = new Map<number, GameweekDeadline>();
-                for (const d of (dls as GameweekDeadline[]) ?? []) {
-                  map.set(d.gameweek, d);
-                }
-                setDeadlines(map);
-              });
-          }
-        });
+              .eq('season_id', activeSeasonId),
+            supabase
+              .from('fixtures')
+              .select(
+                'id, home_team, away_team, kickoff_time, status, home_score, away_score, gameweek, is_star_game, manually_overridden',
+              )
+              .eq('season_id', activeSeasonId)
+              .order('kickoff_time', { ascending: false }),
+          ]);
 
-      // Fetch fixtures
-      void supabase
-        .from('fixtures')
-        .select('id, home_team, away_team, kickoff_time, status, home_score, away_score, gameweek, is_star_game, manually_overridden')
-        .order('kickoff_time', { ascending: false })
-        .limit(200)
-        .then(({ data }) => {
-          setFixtures((data as Fixture[]) ?? []);
-          setLoaded(true);
+        if (deadlinesError || fixturesError) {
+          throw new Error(deadlinesError?.message ?? fixturesError?.message);
+        }
+
+        const deadlineMap = new Map<number, GameweekDeadline>();
+        for (const deadline of (dls as GameweekDeadline[]) ?? []) {
+          deadlineMap.set(deadline.gameweek, deadline);
+        }
+
+        setDeadlines(deadlineMap);
+        setFixtures((fixtureRows as Fixture[]) ?? []);
+        setLoaded(true);
+      })
+      .catch((error: unknown) => {
+        setMessage({
+          type: 'error',
+          text: error instanceof Error ? error.message : 'Failed to load fixtures.',
         });
-    });
+        setLoaded(true);
+      });
   }, []);
 
   useEffect(() => {
