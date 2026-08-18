@@ -79,11 +79,10 @@ export const NAV_ITEMS = [
 ] as const;
 
 /** Sync interval constants (milliseconds) */
-export const LIVE_SYNC_INTERVAL_MS = 60_000;
-export const MATCH_DAY_SYNC_INTERVAL_MS = 30 * 60_000;
+export const LIVE_SYNC_INTERVAL_MS = 10 * 60_000;
+export const MATCH_DAY_SYNC_INTERVAL_MS = 10 * 60_000;
 export const FULL_SYNC_INTERVAL_MS = 6 * 60 * 60_000;
 export const CLIENT_POLL_FALLBACK_MS = 30_000;
 
 /** Football-data.org API base URL */
-export const FOOTBALL_DATA_BASE_URL =
-  'https://api.football-data.org/v4';
+export const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';

@@ -125,6 +125,7 @@ export type Database = {
           kickoff_time: string
           live_away_score: number | null
           live_home_score: number | null
+          live_provider_fixture_id: number | null
           manually_overridden: boolean
           match_minute: number | null
           season_id: string
@@ -146,6 +147,7 @@ export type Database = {
           kickoff_time: string
           live_away_score?: number | null
           live_home_score?: number | null
+          live_provider_fixture_id?: number | null
           manually_overridden?: boolean
           match_minute?: number | null
           season_id: string
@@ -167,6 +169,7 @@ export type Database = {
           kickoff_time?: string
           live_away_score?: number | null
           live_home_score?: number | null
+          live_provider_fixture_id?: number | null
           manually_overridden?: boolean
           match_minute?: number | null
           season_id?: string
