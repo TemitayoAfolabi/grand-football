@@ -9,6 +9,12 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        // API-Football supplies current live-fixture crests from this host.
+        protocol: 'https',
+        hostname: 'media.api-sports.io',
+        pathname: '/football/teams/**',
+      },
+      {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
