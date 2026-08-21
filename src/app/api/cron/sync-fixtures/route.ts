@@ -6,6 +6,7 @@ import {
   type ProviderFixture,
 } from '@/lib/server/api-football';
 import { fetchFootballDataFixtures } from '@/lib/server/football-data';
+import { fixtureKey } from '@/lib/server/fixture-matching';
 import { resolveGoldenBootPicks } from '@/lib/server/golden-boot';
 import {
   FIXTURE_STATUS,
@@ -29,27 +30,6 @@ type StoredFixture = Pick<
   | 'home_team'
   | 'away_team'
 >;
-
-const TEAM_ALIASES: Record<string, string> = {
-  brightonhovealbion: 'brighton',
-  leedsunited: 'leeds',
-  newcastleunited: 'newcastle',
-  tottenhamhotspur: 'tottenham',
-  westhamunited: 'westham',
-  wolverhamptonwanderers: 'wolves',
-};
-
-function teamKey(team: string) {
-  const normalised = team
-    .toLowerCase()
-    .replace(/\b(?:afc|fc)\b/g, '')
-    .replace(/[^a-z]/g, '');
-  return TEAM_ALIASES[normalised] ?? normalised;
-}
-
-function fixtureKey(gameweek: number, homeTeam: string, awayTeam: string) {
-  return `${gameweek}:${teamKey(homeTeam)}:${teamKey(awayTeam)}`;
-}
 
 function isFinished(fixture: ProviderFixture) {
   return fixture.status === FIXTURE_STATUS.FINISHED;
