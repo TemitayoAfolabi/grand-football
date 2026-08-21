@@ -583,23 +583,38 @@ export type Database = {
       };
       scorer_picks: {
         Row: {
+          actual_first_scorer: string | null;
           created_at: string;
           fixture_id: string;
+          is_correct: boolean | null;
           player_name: string;
+          points_awarded: number;
+          provider_fixture_id: number | null;
+          resolved_at: string | null;
           updated_at: string;
           user_id: string;
         };
         Insert: {
+          actual_first_scorer?: string | null;
           created_at?: string;
           fixture_id: string;
+          is_correct?: boolean | null;
           player_name: string;
+          points_awarded?: number;
+          provider_fixture_id?: number | null;
+          resolved_at?: string | null;
           updated_at?: string;
           user_id: string;
         };
         Update: {
+          actual_first_scorer?: string | null;
           created_at?: string;
           fixture_id?: string;
+          is_correct?: boolean | null;
           player_name?: string;
+          points_awarded?: number;
+          provider_fixture_id?: number | null;
+          resolved_at?: string | null;
           updated_at?: string;
           user_id?: string;
         };
