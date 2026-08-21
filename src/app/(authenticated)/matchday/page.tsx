@@ -1,7 +1,5 @@
 import Link from 'next/link';
 
-/* The social tables are introduced by migration 00024; generated DB types are refreshed after migration. */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment */
 import {
   Award,
   Crown,
@@ -20,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/empty-state';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import type { Tables } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
 import { createMiniLeague, joinMiniLeague, saveScorerPick, sendMatchReaction } from './actions';
 
@@ -32,6 +31,35 @@ type LeaderboardEntry = {
   total_points: number;
   rank: number;
 };
+
+type DramaFixture = Pick<
+  Tables<'fixtures'>,
+  | 'id'
+  | 'gameweek'
+  | 'home_team'
+  | 'away_team'
+  | 'kickoff_time'
+  | 'status'
+  | 'home_score'
+  | 'away_score'
+  | 'live_home_score'
+  | 'live_away_score'
+  | 'is_star_game'
+>;
+type DramaScoreRecord = Pick<
+  Tables<'score_records'>,
+  'user_id' | 'fixture_id' | 'points_awarded' | 'reason_code'
+>;
+type CompletedRecord = DramaScoreRecord & { fixture: DramaFixture };
+type DramaProfile = Pick<Tables<'profiles'>, 'id' | 'display_name'>;
+type DramaPrediction = Pick<
+  Tables<'predictions'>,
+  'user_id' | 'fixture_id' | 'home_score' | 'away_score'
+>;
+type DramaScorerPick = Pick<Tables<'scorer_picks'>, 'fixture_id' | 'user_id' | 'player_name'>;
+type DramaReaction = Pick<Tables<'match_reactions'>, 'fixture_id' | 'reaction'>;
+type MiniLeague = Pick<Tables<'mini_leagues'>, 'id' | 'name' | 'invite_code' | 'created_by'>;
+type MiniLeagueMember = Pick<Tables<'mini_league_members'>, 'mini_league_id' | 'user_id'>;
 
 const REACTIONS = [
   { id: 'called_it', label: 'I called it', emoji: '🎯' },
@@ -65,15 +93,16 @@ export default async function MatchdayPage() {
   }
 
   // Only aggregated competition data is passed to the client-facing page.
-  const admin = createAdminClient() as any;
-  const { data: fixtures = [] } = await admin
+  const admin = createAdminClient();
+  const { data: fixtureRows } = await admin
     .from('fixtures')
     .select(
       'id, gameweek, home_team, away_team, kickoff_time, status, home_score, away_score, live_home_score, live_away_score, is_star_game',
     )
     .eq('season_id', season.id)
     .order('kickoff_time', { ascending: true });
-  const fixtureIds = fixtures.map((fixture: { id: string }) => fixture.id);
+  const fixtures = (fixtureRows ?? []) as DramaFixture[];
+  const fixtureIds = fixtures.map((fixture) => fixture.id);
   const [
     leaderboardResult,
     profilesResult,
@@ -118,71 +147,55 @@ export default async function MatchdayPage() {
   ]);
 
   const leaderboard = (leaderboardResult.data ?? []) as LeaderboardEntry[];
-  const profiles = profilesResult.data ?? [];
-  const predictions = predictionsResult.data ?? [];
-  const scoreRecords = scoreRecordsResult.data ?? [];
-  const fixtureById = new Map<string, any>(
-    fixtures.map((fixture: { id: string }) => [fixture.id, fixture]),
+  const profiles = (profilesResult.data ?? []) as DramaProfile[];
+  const predictions = (predictionsResult.data ?? []) as DramaPrediction[];
+  const scoreRecords = (scoreRecordsResult.data ?? []) as DramaScoreRecord[];
+  const scorerPicks = (scorerPicksResult.data ?? []) as DramaScorerPick[];
+  const leagues = (leaguesResult.data ?? []) as MiniLeague[];
+  const leagueMemberships = (membershipsResult.data ?? []) as MiniLeagueMember[];
+  const reactions = (reactionsResult.data ?? []) as DramaReaction[];
+  const fixtureById = new Map<string, DramaFixture>(
+    fixtures.map((fixture) => [fixture.id, fixture]),
   );
   const profileById = new Map<string, string>(
-    profiles.map((profile: { id: string; display_name: string }) => [
-      profile.id,
-      profile.display_name,
-    ]),
+    profiles.map((profile) => [profile.id, profile.display_name]),
   );
   const userEntry = leaderboard.find((entry) => entry.user_id === user.id);
   const rival =
     leaderboard.find((entry) => entry.rank === (userEntry?.rank ?? 0) - 1) ??
     leaderboard.find((entry) => entry.rank === (userEntry?.rank ?? 0) + 1) ??
     null;
-  const liveFixtures = fixtures.filter((fixture: { status: string }) =>
-    ['IN_PLAY', 'PAUSED'].includes(fixture.status),
-  );
+  const liveFixtures = fixtures.filter((fixture) => ['IN_PLAY', 'PAUSED'].includes(fixture.status));
   const upcomingFixture = fixtures.find(
-    (fixture: { kickoff_time: string; status: string }) =>
+    (fixture) =>
       new Date(fixture.kickoff_time) > new Date() &&
       ['SCHEDULED', 'TIMED'].includes(fixture.status),
   );
-  const currentPick = (scorerPicksResult.data ?? []).find(
-    (pick: { user_id: string; fixture_id: string }) =>
-      pick.user_id === user.id && pick.fixture_id === upcomingFixture?.id,
+  const currentPick = scorerPicks.find(
+    (pick) => pick.user_id === user.id && pick.fixture_id === upcomingFixture?.id,
   );
   const earnedBadges = badgesResult.data ?? [];
 
-  const completedRecords = scoreRecords
-    .map(
-      (record: {
-        fixture_id: string;
-        user_id: string;
-        points_awarded: number;
-        reason_code: string;
-      }) => ({ ...record, fixture: fixtureById.get(record.fixture_id) }),
-    )
-    .filter((record: { fixture?: { kickoff_time: string } }) => record.fixture)
-    .sort((a: { fixture: { kickoff_time: string } }, b: { fixture: { kickoff_time: string } }) =>
-      b.fixture.kickoff_time.localeCompare(a.fixture.kickoff_time),
-    );
-  const userRecords = completedRecords.filter(
-    (record: { user_id: string }) => record.user_id === user.id,
-  );
-  const hitStreak = userRecords.reduce((streak: number, record: { points_awarded: number }) => {
+  const completedRecords: CompletedRecord[] = scoreRecords
+    .map((record) => {
+      const fixture = fixtureById.get(record.fixture_id);
+      return fixture ? { ...record, fixture } : null;
+    })
+    .filter((record): record is CompletedRecord => record !== null)
+    .sort((a, b) => b.fixture.kickoff_time.localeCompare(a.fixture.kickoff_time));
+  const userRecords = completedRecords.filter((record) => record.user_id === user.id);
+  const hitStreak = userRecords.reduce((streak, record) => {
     if (streak < 0) return streak;
     return record.points_awarded > 0 ? streak + 1 : -1;
   }, 0);
   const currentHitStreak = hitStreak < 0 ? Math.abs(hitStreak) - 1 : hitStreak;
   const userRecordByFixture = new Map<string, number>(
-    userRecords.map((record: { fixture_id: string; points_awarded: number }) => [
-      record.fixture_id,
-      record.points_awarded,
-    ]),
+    userRecords.map((record) => [record.fixture_id, record.points_awarded]),
   );
   const rivalRecordByFixture = new Map<string, number>(
     completedRecords
-      .filter((record: { user_id: string }) => record.user_id === rival?.user_id)
-      .map((record: { fixture_id: string; points_awarded: number }) => [
-        record.fixture_id,
-        record.points_awarded,
-      ]),
+      .filter((record) => record.user_id === rival?.user_id)
+      .map((record) => [record.fixture_id, record.points_awarded]),
   );
   const sharedFixtures = [...userRecordByFixture.keys()].filter((fixtureId) =>
     rivalRecordByFixture.has(fixtureId),
@@ -198,46 +211,39 @@ export default async function MatchdayPage() {
 
   const latestFinishedGameweek = Math.max(
     ...fixtures
-      .filter((fixture: { status: string }) => fixture.status === 'FINISHED')
-      .map((fixture: { gameweek: number }) => fixture.gameweek),
+      .filter((fixture) => fixture.status === 'FINISHED')
+      .map((fixture) => fixture.gameweek),
     0,
   );
   const latestRecords = completedRecords.filter(
-    (record: { fixture: { gameweek: number } }) =>
-      record.fixture.gameweek === latestFinishedGameweek,
+    (record) => record.fixture.gameweek === latestFinishedGameweek,
   );
   const recapTotals = new Map<string, number>();
   for (const record of latestRecords)
     recapTotals.set(record.user_id, (recapTotals.get(record.user_id) ?? 0) + record.points_awarded);
   const recapWinner = [...recapTotals.entries()].sort((a, b) => b[1] - a[1])[0];
   const exactLeader = [...completedRecords]
-    .filter((record: { reason_code: string }) =>
-      ['EXACT_SCORE', 'STAR_EXACT'].includes(record.reason_code),
-    )
+    .filter((record) => ['EXACT_SCORE', 'STAR_EXACT'].includes(record.reason_code))
     .reduce(
-      (counts: Map<string, number>, record: { user_id: string }) =>
-        counts.set(record.user_id, (counts.get(record.user_id) ?? 0) + 1),
-      new Map(),
+      (counts, record) => counts.set(record.user_id, (counts.get(record.user_id) ?? 0) + 1),
+      new Map<string, number>(),
     );
   const exactAward = [...exactLeader.entries()].sort((a, b) => b[1] - a[1])[0];
   const positiveAward = [...completedRecords]
-    .filter((record: { points_awarded: number }) => record.points_awarded > 0)
+    .filter((record) => record.points_awarded > 0)
     .reduce(
-      (counts: Map<string, number>, record: { user_id: string }) =>
-        counts.set(record.user_id, (counts.get(record.user_id) ?? 0) + 1),
-      new Map(),
+      (counts, record) => counts.set(record.user_id, (counts.get(record.user_id) ?? 0) + 1),
+      new Map<string, number>(),
     );
   const consistentAward = [...positiveAward.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  const leagueMemberships = membershipsResult.data ?? [];
-  const myLeagues = (leaguesResult.data ?? []).filter((league: { id: string }) =>
+  const myLeagues = leagues.filter((league) =>
     leagueMemberships.some(
-      (member: { mini_league_id: string; user_id: string }) =>
-        member.mini_league_id === league.id && member.user_id === user.id,
+      (member) => member.mini_league_id === league.id && member.user_id === user.id,
     ),
   );
   const reactionCounts = new Map<string, number>();
-  for (const reaction of reactionsResult.data ?? []) {
+  for (const reaction of reactions) {
     const key = `${reaction.fixture_id}:${reaction.reaction}`;
     reactionCounts.set(key, (reactionCounts.get(key) ?? 0) + 1);
   }
@@ -294,10 +300,10 @@ export default async function MatchdayPage() {
           </CardHeader>
           {liveFixtures.length ? (
             <div className="space-y-3">
-              {liveFixtures.map((fixture: any) => {
+              {liveFixtures.map((fixture) => {
                 const score = `${fixture.live_home_score ?? fixture.home_score ?? 0}–${fixture.live_away_score ?? fixture.away_score ?? 0}`;
                 const pick = predictions.find(
-                  (prediction: any) =>
+                  (prediction) =>
                     prediction.user_id === user.id && prediction.fixture_id === fixture.id,
                 );
                 return (
@@ -448,10 +454,10 @@ export default async function MatchdayPage() {
             </CardTitle>
           </CardHeader>
           <div className="space-y-3">
-            {myLeagues.map((league: any) => {
+            {myLeagues.map((league) => {
               const memberIds = leagueMemberships
-                .filter((member: any) => member.mini_league_id === league.id)
-                .map((member: any) => member.user_id);
+                .filter((member) => member.mini_league_id === league.id)
+                .map((member) => member.user_id);
               const top = leaderboard
                 .filter((entry) => memberIds.includes(entry.user_id))
                 .slice(0, 3);

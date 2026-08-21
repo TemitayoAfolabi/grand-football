@@ -1,8 +1,5 @@
 'use server';
 
-/* The social tables are introduced by migration 00024; generated DB types are refreshed after migration. */
-/* eslint-disable @typescript-eslint/no-base-to-string, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
-
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -19,13 +16,18 @@ function inviteCode() {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 }
 
+function formString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === 'string' ? value : '';
+}
+
 export async function createMiniLeague(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const name = String(formData.get('name') ?? '').trim();
-  const seasonId = String(formData.get('seasonId') ?? '');
+  const name = formString(formData, 'name').trim();
+  const seasonId = formString(formData, 'seasonId');
   if (!user || name.length < 3 || name.length > 40) return;
 
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
   const { data: league, error } = await admin
     .from('mini_leagues')
     .insert({ name, season_id: seasonId, created_by: user.id, invite_code: inviteCode() })
@@ -42,12 +44,10 @@ export async function createMiniLeague(formData: FormData): Promise<void> {
 
 export async function joinMiniLeague(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const code = String(formData.get('inviteCode') ?? '')
-    .trim()
-    .toUpperCase();
+  const code = formString(formData, 'inviteCode').trim().toUpperCase();
   if (!user || !/^[A-Z0-9]{8}$/.test(code)) return;
 
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
   const { data: league } = await admin
     .from('mini_leagues')
     .select('id')
@@ -66,11 +66,11 @@ export async function joinMiniLeague(formData: FormData): Promise<void> {
 
 export async function saveScorerPick(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const fixtureId = String(formData.get('fixtureId') ?? '');
-  const playerName = String(formData.get('playerName') ?? '').trim();
+  const fixtureId = formString(formData, 'fixtureId');
+  const playerName = formString(formData, 'playerName').trim();
   if (!user || playerName.length < 2 || playerName.length > 60) return;
 
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
   const { data: fixture } = await admin
     .from('fixtures')
     .select('kickoff_time')
@@ -93,11 +93,11 @@ export async function saveScorerPick(formData: FormData): Promise<void> {
 
 export async function sendMatchReaction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const fixtureId = String(formData.get('fixtureId') ?? '');
-  const reaction = String(formData.get('reaction') ?? '');
+  const fixtureId = formString(formData, 'fixtureId');
+  const reaction = formString(formData, 'reaction');
   if (!user || !['called_it', 'robbed', 'how'].includes(reaction)) return;
 
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
   const { error } = await admin
     .from('match_reactions')
     .upsert(
