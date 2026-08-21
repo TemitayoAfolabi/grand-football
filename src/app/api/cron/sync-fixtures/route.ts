@@ -1,56 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
-  FOOTBALL_DATA_BASE_URL,
+  fetchApiFootballFixtures,
+  isLiveProviderFixture,
+  type ProviderFixture,
+} from '@/lib/server/api-football';
+import {
   FIXTURE_STATUS,
+  FULL_SYNC_INTERVAL_MS,
   LIVE_SYNC_INTERVAL_MS,
   MATCH_DAY_SYNC_INTERVAL_MS,
-  FULL_SYNC_INTERVAL_MS,
 } from '@/lib/constants';
 import { getPremierLeagueSeasonYear } from '@/lib/season';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
 type SyncMode = 'live' | 'match_day' | 'full' | 'skipped';
+type StoredFixture = Pick<
+  Database['public']['Tables']['fixtures']['Row'],
+  | 'id'
+  | 'api_fixture_id'
+  | 'live_provider_fixture_id'
+  | 'status'
+  | 'manually_overridden'
+  | 'gameweek'
+  | 'home_team'
+  | 'away_team'
+>;
 
-interface ApiMatch {
-  id: number;
-  matchday: number;
-  utcDate: string;
-  status: string;
-  minute?: number | null;
-  score: {
-    fullTime: {
-      home: number | null;
-      away: number | null;
-    };
-    halfTime?: {
-      home: number | null;
-      away: number | null;
-    };
-  };
-  homeTeam: {
-    name: string;
-    crest: string;
-  };
-  awayTeam: {
-    name: string;
-    crest: string;
+const TEAM_ALIASES: Record<string, string> = {
+  brightonhovealbion: 'brighton',
+  leedsunited: 'leeds',
+  newcastleunited: 'newcastle',
+  tottenhamhotspur: 'tottenham',
+  westhamunited: 'westham',
+  wolverhamptonwanderers: 'wolves',
+};
+
+function teamKey(team: string) {
+  const normalised = team
+    .toLowerCase()
+    .replace(/\b(?:afc|fc)\b/g, '')
+    .replace(/[^a-z]/g, '');
+  return TEAM_ALIASES[normalised] ?? normalised;
+}
+
+function fixtureKey(gameweek: number, homeTeam: string, awayTeam: string) {
+  return `${gameweek}:${teamKey(homeTeam)}:${teamKey(awayTeam)}`;
+}
+
+function isFinished(fixture: ProviderFixture) {
+  return fixture.status === FIXTURE_STATUS.FINISHED;
+}
+
+function fixtureUpdate(
+  fixture: ProviderFixture,
+): Database['public']['Tables']['fixtures']['Update'] {
+  return {
+    live_provider_fixture_id: fixture.providerFixtureId,
+    home_team: fixture.homeTeam,
+    away_team: fixture.awayTeam,
+    home_team_crest: fixture.homeTeamCrest,
+    away_team_crest: fixture.awayTeamCrest,
+    kickoff_time: fixture.kickoffTime,
+    gameweek: fixture.gameweek,
+    status: fixture.status,
+    home_score: fixture.homeScore,
+    away_score: fixture.awayScore,
+    live_home_score: fixture.liveHomeScore,
+    live_away_score: fixture.liveAwayScore,
+    match_minute: fixture.matchMinute,
+    updated_at: new Date().toISOString(),
   };
 }
 
-function mapApiStatus(apiStatus: string): string {
-  const statusMap: Record<string, string> = {
-    SCHEDULED: FIXTURE_STATUS.SCHEDULED,
-    TIMED: FIXTURE_STATUS.TIMED,
-    IN_PLAY: FIXTURE_STATUS.IN_PLAY,
-    PAUSED: FIXTURE_STATUS.PAUSED,
-    FINISHED: FIXTURE_STATUS.FINISHED,
-    POSTPONED: FIXTURE_STATUS.POSTPONED,
-    CANCELLED: FIXTURE_STATUS.CANCELLED,
-    SUSPENDED: FIXTURE_STATUS.SUSPENDED,
+function fixtureInsert(
+  seasonId: string,
+  fixture: ProviderFixture,
+): Database['public']['Tables']['fixtures']['Insert'] {
+  return {
+    season_id: seasonId,
+    api_fixture_id: fixture.providerFixtureId,
+    ...fixtureUpdate(fixture),
+    home_team: fixture.homeTeam,
+    away_team: fixture.awayTeam,
+    kickoff_time: fixture.kickoffTime,
+    gameweek: fixture.gameweek,
   };
-  return statusMap[apiStatus] ?? FIXTURE_STATUS.SCHEDULED;
 }
 
 async function logSync(
@@ -76,10 +112,20 @@ async function logSync(
   });
 }
 
+function hasValidCronSecret(authHeader: string | null) {
+  return [process.env.CRON_SECRET, process.env.SYNC_CRON_SECRET].some(
+    (secret) => Boolean(secret) && authHeader === `Bearer ${secret}`,
+  );
+}
+
+/** Vercel Cron invokes scheduled Route Handlers with GET requests. */
+export async function GET(request: NextRequest) {
+  return POST(request);
+}
+
 export async function POST(request: NextRequest) {
-  // 1. Verify CRON_SECRET
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!hasValidCronSecret(authHeader)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -87,42 +133,31 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
 
   try {
-    // 2. Get active season
     const { data: season, error: seasonError } = await supabase
       .from('seasons')
       .select('*')
       .eq('is_active', true)
       .single();
-
     if (seasonError || !season) {
-      return NextResponse.json(
-        { error: 'No active season found' },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'No active season found' }, { status: 404 });
     }
 
-    // football-data.org uses the campaign's starting year. New seasons store
-    // this explicitly; the fallback keeps installations safe until migration
-    // 00022 has been applied.
-    const storedApiSeason = (season as typeof season & { api_season?: number | null })
-      .api_season;
+    const storedApiSeason = (season as typeof season & { api_season?: number | null }).api_season;
     const nameYear = /^(20\d{2})-/.exec(season.name)?.[1];
-    const apiSeason = storedApiSeason ?? (nameYear ? Number(nameYear) : getPremierLeagueSeasonYear());
+    const apiSeason =
+      storedApiSeason ?? (nameYear ? Number(nameYear) : getPremierLeagueSeasonYear());
 
-    // 3. Determine sync mode based on current state
     const { data: liveFixtures } = await supabase
       .from('fixtures')
       .select('id')
       .eq('season_id', season.id)
       .in('status', [FIXTURE_STATUS.IN_PLAY, FIXTURE_STATUS.PAUSED]);
-
     const hasLiveMatches = (liveFixtures?.length ?? 0) > 0;
 
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setUTCHours(23, 59, 59, 999);
-
     const { count: todayCount } = await supabase
       .from('fixtures')
       .select('id', { count: 'exact', head: true })
@@ -131,22 +166,13 @@ export async function POST(request: NextRequest) {
       .lte('kickoff_time', todayEnd.toISOString());
 
     const hasMatchesToday = (todayCount ?? 0) > 0;
+    const mode: SyncMode = hasLiveMatches ? 'live' : hasMatchesToday ? 'match_day' : 'full';
+    const intervalMs = hasLiveMatches
+      ? LIVE_SYNC_INTERVAL_MS
+      : hasMatchesToday
+        ? MATCH_DAY_SYNC_INTERVAL_MS
+        : FULL_SYNC_INTERVAL_MS;
 
-    let mode: SyncMode;
-    let intervalMs: number;
-
-    if (hasLiveMatches) {
-      mode = 'live';
-      intervalMs = LIVE_SYNC_INTERVAL_MS;
-    } else if (hasMatchesToday) {
-      mode = 'match_day';
-      intervalMs = MATCH_DAY_SYNC_INTERVAL_MS;
-    } else {
-      mode = 'full';
-      intervalMs = FULL_SYNC_INTERVAL_MS;
-    }
-
-    // 4. Check last sync time — self-throttle if too recent
     const { data: lastSync } = await supabase
       .from('sync_log')
       .select('ran_at')
@@ -155,173 +181,114 @@ export async function POST(request: NextRequest) {
       .order('ran_at', { ascending: false })
       .limit(1)
       .single();
-
     if (lastSync) {
       const elapsed = Date.now() - new Date(lastSync.ran_at).getTime();
       if (elapsed < intervalMs) {
         await logSync(supabase, 'skipped', 'success', startTime);
-        return NextResponse.json({
-          mode: 'skipped',
-          elapsed,
-          intervalMs,
-        });
+        return NextResponse.json({ mode: 'skipped', elapsed, intervalMs });
       }
     }
 
-    // 5. Fetch from football-data.org API
-    const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-    if (!apiKey) {
+    if (!process.env.API_FOOTBALL_API_KEY) {
       await logSync(supabase, mode, 'error', startTime, {
-        error_message: 'FOOTBALL_DATA_API_KEY not configured',
+        error_message: 'API_FOOTBALL_API_KEY not configured',
       });
-      return NextResponse.json(
-        { error: 'FOOTBALL_DATA_API_KEY not configured' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'API_FOOTBALL_API_KEY not configured' }, { status: 500 });
     }
 
-    const response = await fetch(
-      `${FOOTBALL_DATA_BASE_URL}/competitions/PL/matches?season=${apiSeason}`,
-      {
-        headers: { 'X-Auth-Token': apiKey },
-        next: { revalidate: 0 },
-      },
-    );
-
-    if (!response.ok) {
-      await logSync(supabase, mode, 'error', startTime, {
-        api_calls_made: 1,
-        error_message: `API responded with ${response.status}`,
-      });
-      return NextResponse.json(
-        { error: `API responded with ${response.status}` },
-        { status: 502 },
-      );
-    }
-
-    const apiData = (await response.json()) as { matches?: ApiMatch[] };
-    const matches: ApiMatch[] = apiData.matches ?? [];
-
-    // 6. Get existing fixtures to detect newly finished ones
-    const { data: existingFixtures } = await supabase
+    const matches = await fetchApiFootballFixtures({
+      season: apiSeason,
+      scope: mode === 'full' ? 'season' : 'today',
+    });
+    const { data: existingFixtures, error: existingError } = await supabase
       .from('fixtures')
-      .select('api_fixture_id, status, manually_overridden')
+      .select(
+        'id, api_fixture_id, live_provider_fixture_id, status, manually_overridden, gameweek, home_team, away_team',
+      )
       .eq('season_id', season.id);
+    if (existingError) throw new Error(existingError.message);
 
-    const existingMap = new Map(
-      (existingFixtures ?? []).map((f) => [f.api_fixture_id, f]),
-    );
+    const byProviderId = new Map<number, StoredFixture>();
+    const byFixtureKey = new Map<string, StoredFixture>();
+    for (const fixture of (existingFixtures ?? []) as StoredFixture[]) {
+      if (fixture.live_provider_fixture_id != null) {
+        byProviderId.set(fixture.live_provider_fixture_id, fixture);
+      }
+      byFixtureKey.set(fixtureKey(fixture.gameweek, fixture.home_team, fixture.away_team), fixture);
+    }
 
     let synced = 0;
+    let scoresCalculated = 0;
+    let mappedLegacyFixtures = 0;
     const newlyFinished: string[] = [];
 
-    // 7. Upsert fixtures
     for (const match of matches) {
-      const existing = existingMap.get(match.id);
-      const mappedStatus = mapApiStatus(match.status);
-      const isLive =
-        mappedStatus === FIXTURE_STATUS.IN_PLAY ||
-        mappedStatus === FIXTURE_STATUS.PAUSED;
+      const existing =
+        byProviderId.get(match.providerFixtureId) ??
+        byFixtureKey.get(fixtureKey(match.gameweek, match.homeTeam, match.awayTeam));
       const wasNotFinished = existing?.status !== FIXTURE_STATUS.FINISHED;
-      const isNowFinished = mappedStatus === FIXTURE_STATUS.FINISHED;
 
-      // For manually overridden fixtures: only update scores/status when game finishes or is live
-      // Preserve admin's gameweek and kickoff_time
       if (existing?.manually_overridden) {
-        if (isNowFinished || isLive) {
-          // Get fixture ID for the update
-          const { data: fixtureData } = await supabase
+        if (isLiveProviderFixture(match) || isFinished(match)) {
+          const { error } = await supabase
             .from('fixtures')
-            .select('id')
-            .eq('api_fixture_id', match.id)
-            .single();
-
-          if (fixtureData) {
-            const updateData: Partial<Database['public']['Tables']['fixtures']['Update']> = {
-              status: mappedStatus,
-              home_score: match.score.fullTime.home,
-              away_score: match.score.fullTime.away,
+            .update({
+              live_provider_fixture_id: match.providerFixtureId,
+              status: match.status,
+              home_score: match.homeScore,
+              away_score: match.awayScore,
+              live_home_score: match.liveHomeScore,
+              live_away_score: match.liveAwayScore,
+              match_minute: match.matchMinute,
               updated_at: new Date().toISOString(),
-              ...(isLive
-                ? {
-                    live_home_score: match.score.fullTime.home,
-                    live_away_score: match.score.fullTime.away,
-                    match_minute: match.minute ?? null,
-                  }
-                : {}),
-            };
-
-            await supabase
-              .from('fixtures')
-              .update(updateData)
-              .eq('id', fixtureData.id);
-
-            synced++;
-
-            if (wasNotFinished && isNowFinished) {
-              newlyFinished.push(fixtureData.id);
-            }
-          }
+            })
+            .eq('id', existing.id);
+          if (error) throw new Error(error.message);
+          synced++;
         }
+      } else if (existing) {
+        const { error } = await supabase
+          .from('fixtures')
+          .update(fixtureUpdate(match))
+          .eq('id', existing.id);
+        if (error) throw new Error(error.message);
+        if (existing.live_provider_fixture_id == null) mappedLegacyFixtures++;
+        synced++;
+      } else {
+        const { data: inserted, error } = await supabase
+          .from('fixtures')
+          .insert(fixtureInsert(season.id, match))
+          .select('id')
+          .single();
+        if (error) throw new Error(error.message);
+        synced++;
+        if (isFinished(match) && inserted) newlyFinished.push(inserted.id);
         continue;
       }
 
-      const upsertData: Database['public']['Tables']['fixtures']['Insert'] = {
-        season_id: season.id,
-        api_fixture_id: match.id,
-        home_team: match.homeTeam.name,
-        away_team: match.awayTeam.name,
-        home_team_crest: match.homeTeam.crest,
-        away_team_crest: match.awayTeam.crest,
-        kickoff_time: match.utcDate,
-        status: mappedStatus,
-        home_score: match.score.fullTime.home,
-        away_score: match.score.fullTime.away,
-        gameweek: match.matchday,
-        updated_at: new Date().toISOString(),
-        // Live match extras
-        ...(isLive
-          ? {
-              live_home_score: match.score.fullTime.home,
-              live_away_score: match.score.fullTime.away,
-              match_minute: match.minute ?? null,
-            }
-          : {}),
-      };
-
-      const { data: upserted } = await supabase
-        .from('fixtures')
-        .upsert(upsertData, { onConflict: 'api_fixture_id' })
-        .select('id')
-        .single();
-
-      synced++;
-
-      // 8. Track newly finished fixtures
-      if (wasNotFinished && isNowFinished && upserted?.id) {
-        newlyFinished.push(upserted.id);
+      if (existing && wasNotFinished && isFinished(match)) {
+        newlyFinished.push(existing.id);
       }
     }
 
-    // 9. Auto-trigger score calculation for newly finished fixtures
-    let scoresCalculated = 0;
     for (const fixtureId of newlyFinished) {
-      const { data } = await supabase.rpc('calculate_fixture_scores', {
+      const { data, error } = await supabase.rpc('calculate_fixture_scores', {
         p_fixture_id: fixtureId,
       });
+      if (error) throw new Error(error.message);
       scoresCalculated += data ?? 0;
     }
 
-    // 10. Log successful sync
     await logSync(supabase, mode, 'success', startTime, {
       fixtures_updated: synced,
       scores_calculated: scoresCalculated,
       api_calls_made: 1,
     });
-
     return NextResponse.json({
+      provider: 'api-football',
       mode,
       synced,
+      mappedLegacyFixtures,
       newlyFinished: newlyFinished.length,
       scoresCalculated,
       seasonId: season.id,
@@ -330,9 +297,6 @@ export async function POST(request: NextRequest) {
     await logSync(supabase, 'full', 'error', startTime, {
       error_message: (err as Error).message,
     }).catch(() => {});
-    return NextResponse.json(
-      { error: (err as Error).message },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
