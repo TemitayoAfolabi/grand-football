@@ -20,7 +20,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
-import { createMiniLeague, joinMiniLeague, saveScorerPick, sendMatchReaction } from './actions';
+import { sendMatchReaction } from './actions';
+import { MiniLeagues } from './mini-leagues';
+import { MatchdayLiveRefresh } from './matchday-live-refresh';
+import { ScorerPick } from './scorer-pick';
 
 export const metadata = { title: 'Matchday Drama' };
 export const dynamic = 'force-dynamic';
@@ -165,7 +168,9 @@ export default async function MatchdayPage() {
     leaderboard.find((entry) => entry.rank === (userEntry?.rank ?? 0) - 1) ??
     leaderboard.find((entry) => entry.rank === (userEntry?.rank ?? 0) + 1) ??
     null;
-  const liveFixtures = fixtures.filter((fixture) => ['IN_PLAY', 'PAUSED'].includes(fixture.status));
+  const liveFixtures = fixtures.filter((fixture) =>
+    ['IN_PLAY', 'PAUSED', 'HALFTIME'].includes(fixture.status),
+  );
   const upcomingFixture = fixtures.find(
     (fixture) =>
       new Date(fixture.kickoff_time) > new Date() &&
@@ -250,6 +255,7 @@ export default async function MatchdayPage() {
 
   return (
     <div className="space-y-6">
+      <MatchdayLiveRefresh />
       <header className="flex flex-col gap-2 tablet:flex-row tablet:items-end tablet:justify-between">
         <div>
           <p className="text-caption font-semibold uppercase tracking-[0.16em] text-accent">
@@ -397,25 +403,11 @@ export default async function MatchdayPage() {
             <Badge variant="star">Optional</Badge>
           </CardHeader>
           {upcomingFixture ? (
-            <form
-              action={saveScorerPick}
-              className="flex flex-col gap-3 tablet:flex-row tablet:items-end"
-            >
-              <input type="hidden" name="fixtureId" value={upcomingFixture.id} />
-              <label className="flex-1 text-body-sm text-text-secondary">
-                First scorer for {compactName(upcomingFixture.home_team)} v{' '}
-                {compactName(upcomingFixture.away_team)}
-                <input
-                  name="playerName"
-                  defaultValue={currentPick?.player_name ?? ''}
-                  placeholder="e.g. Bukayo Saka"
-                  className="mt-1 w-full rounded-input border border-border bg-bg-primary px-3 py-2 text-text-primary"
-                />
-              </label>
-              <button className="rounded-input bg-accent px-4 py-2 font-semibold text-text-inverse">
-                Lock pick
-              </button>
-            </form>
+            <ScorerPick
+              fixtureId={upcomingFixture.id}
+              fixtureLabel={`${compactName(upcomingFixture.home_team)} v ${compactName(upcomingFixture.away_team)}`}
+              currentPick={currentPick?.player_name ?? ''}
+            />
           ) : (
             <p className="text-body-sm text-text-secondary">
               The next fixture will unlock a scorer pick.
@@ -453,54 +445,28 @@ export default async function MatchdayPage() {
               Mini-leagues
             </CardTitle>
           </CardHeader>
-          <div className="space-y-3">
-            {myLeagues.map((league) => {
+          <MiniLeagues
+            leagues={myLeagues.map((league) => {
               const memberIds = leagueMemberships
                 .filter((member) => member.mini_league_id === league.id)
                 .map((member) => member.user_id);
-              const top = leaderboard
+              const standings = leaderboard
                 .filter((entry) => memberIds.includes(entry.user_id))
-                .slice(0, 3);
-              return (
-                <div key={league.id} className="rounded-input border border-border-subtle p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-text-primary">{league.name}</span>
-                    <code className="text-caption text-accent">{league.invite_code}</code>
-                  </div>
-                  <p className="mt-1 text-caption text-text-tertiary">
-                    {memberIds.length} players ·{' '}
-                    {top.map((entry) => entry.display_name).join(' · ') || 'Waiting for rankings'}
-                  </p>
-                </div>
-              );
+                .map((entry, index) => ({
+                  userId: entry.user_id,
+                  displayName: entry.display_name,
+                  totalPoints: entry.total_points,
+                  rank: index + 1,
+                }));
+              return {
+                id: league.id,
+                name: league.name,
+                inviteCode: league.invite_code,
+                memberCount: memberIds.length,
+                standings,
+              };
             })}
-          </div>
-          <div className="mt-4 grid gap-2 tablet:grid-cols-2">
-            <form action={createMiniLeague} className="flex gap-2">
-              <input type="hidden" name="seasonId" value={season.id} />
-              <input
-                name="name"
-                required
-                placeholder="Create league"
-                className="min-w-0 flex-1 rounded-input border border-border bg-bg-primary px-3 py-2 text-body-sm"
-              />
-              <button className="rounded-input border border-accent px-3 text-body-sm font-semibold text-accent">
-                Create
-              </button>
-            </form>
-            <form action={joinMiniLeague} className="flex gap-2">
-              <input
-                name="inviteCode"
-                required
-                maxLength={8}
-                placeholder="Invite code"
-                className="min-w-0 flex-1 rounded-input border border-border bg-bg-primary px-3 py-2 text-body-sm uppercase"
-              />
-              <button className="rounded-input border border-border px-3 text-body-sm font-semibold text-text-primary">
-                Join
-              </button>
-            </form>
-          </div>
+          />
         </Card>
         <Card>
           <CardHeader>
