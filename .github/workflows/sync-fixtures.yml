@@ -2,9 +2,10 @@ name: Sync live fixtures
 
 on:
   schedule:
-    # GitHub Actions schedules are UTC. This covers the usual Premier League
-    # match window; the endpoint applies its own 10-minute API throttle.
-    - cron: '*/10 11-23 * * *'
+    # GitHub Actions schedules are UTC. Run throughout the day so a late
+    # fixture is also finalised after midnight; the endpoint applies its own
+    # 10-minute API throttle.
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 concurrency:

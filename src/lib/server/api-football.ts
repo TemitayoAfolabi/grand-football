@@ -165,11 +165,15 @@ export async function fetchApiFootballFixtures({
 
   const baseUrl = process.env.API_FOOTBALL_BASE_URL ?? DEFAULT_API_FOOTBALL_BASE_URL;
   const url = new URL(`${baseUrl}/fixtures`);
-  url.searchParams.set('league', String(API_FOOTBALL_PREMIER_LEAGUE_ID));
-  url.searchParams.set('season', String(season));
 
   if (scope === 'today') {
+    // The free plan permits date feeds for the current season, but rejects the
+    // equivalent league + season query. This feed is therefore the source of
+    // truth for live scores and final whistles on match days.
     url.searchParams.set('date', date.toISOString().slice(0, 10));
+  } else {
+    url.searchParams.set('league', String(API_FOOTBALL_PREMIER_LEAGUE_ID));
+    url.searchParams.set('season', String(season));
   }
 
   const response = await fetch(url, {
@@ -187,6 +191,7 @@ export async function fetchApiFootballFixtures({
   }
 
   return (payload.response ?? [])
+    .filter((fixture) => fixture.league.id === API_FOOTBALL_PREMIER_LEAGUE_ID)
     .map(mapApiFootballFixture)
     .filter((fixture): fixture is ProviderFixture => fixture !== null);
 }
