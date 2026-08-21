@@ -5,6 +5,7 @@ import {
   isLiveProviderFixture,
   type ProviderFixture,
 } from '@/lib/server/api-football';
+import { fetchFootballDataFixtures } from '@/lib/server/football-data';
 import {
   FIXTURE_STATUS,
   FULL_SYNC_INTERVAL_MS,
@@ -189,17 +190,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!process.env.API_FOOTBALL_API_KEY) {
-      await logSync(supabase, mode, 'error', startTime, {
-        error_message: 'API_FOOTBALL_API_KEY not configured',
-      });
-      return NextResponse.json({ error: 'API_FOOTBALL_API_KEY not configured' }, { status: 500 });
+    const scope = mode === 'full' ? 'season' : 'today';
+    let matches: ProviderFixture[];
+    let provider = 'api-football';
+    let apiCallsMade = 1;
+    try {
+      matches = await fetchApiFootballFixtures({ season: apiSeason, scope });
+    } catch (apiFootballError) {
+      // API-Football's free tier does not include the current season. Keep
+      // live scores working with the existing football-data.org provider.
+      matches = await fetchFootballDataFixtures({ season: apiSeason, scope });
+      provider = 'football-data';
+      apiCallsMade = 2;
+      console.warn('API-Football sync failed; using football-data.org fallback', apiFootballError);
     }
-
-    const matches = await fetchApiFootballFixtures({
-      season: apiSeason,
-      scope: mode === 'full' ? 'season' : 'today',
-    });
     const { data: existingFixtures, error: existingError } = await supabase
       .from('fixtures')
       .select(
@@ -282,10 +286,10 @@ export async function POST(request: NextRequest) {
     await logSync(supabase, mode, 'success', startTime, {
       fixtures_updated: synced,
       scores_calculated: scoresCalculated,
-      api_calls_made: 1,
+      api_calls_made: apiCallsMade,
     });
     return NextResponse.json({
-      provider: 'api-football',
+      provider,
       mode,
       synced,
       mappedLegacyFixtures,
