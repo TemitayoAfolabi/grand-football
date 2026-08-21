@@ -112,9 +112,20 @@ async function logSync(
   });
 }
 
+function hasValidCronSecret(authHeader: string | null) {
+  return [process.env.CRON_SECRET, process.env.SYNC_CRON_SECRET].some(
+    (secret) => Boolean(secret) && authHeader === `Bearer ${secret}`,
+  );
+}
+
+/** Vercel Cron invokes scheduled Route Handlers with GET requests. */
+export async function GET(request: NextRequest) {
+  return POST(request);
+}
+
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!hasValidCronSecret(authHeader)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

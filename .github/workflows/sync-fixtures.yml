@@ -1,0 +1,28 @@
+name: Sync live fixtures
+
+on:
+  schedule:
+    # GitHub Actions schedules are UTC. This covers the usual Premier League
+    # match window; the endpoint applies its own 10-minute API throttle.
+    - cron: '*/10 11-23 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-live-fixtures
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Sync fixtures from API-Football
+        env:
+          SYNC_CRON_SECRET: ${{ secrets.SYNC_CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+            --request POST \
+            --header "Authorization: Bearer ${SYNC_CRON_SECRET}" \
+            https://grand-football.vercel.app/api/cron/sync-fixtures
