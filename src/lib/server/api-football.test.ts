@@ -13,7 +13,7 @@ describe('API-Football adapter', () => {
         date: '2026-08-22T14:00:00+00:00',
         status: { short: 'HT', elapsed: 45 },
       },
-      league: { round: 'Regular Season - 2' },
+      league: { id: 39, round: 'Regular Season - 2' },
       teams: {
         home: { name: 'Arsenal', logo: 'https://example.com/arsenal.png' },
         away: { name: 'Chelsea', logo: 'https://example.com/chelsea.png' },
@@ -41,7 +41,7 @@ describe('API-Football adapter', () => {
         date: '2026-08-22T14:00:00+00:00',
         status: { short: 'FT', elapsed: 90 },
       },
-      league: { round: 'Regular Season - 2' },
+      league: { id: 39, round: 'Regular Season - 2' },
       teams: {
         home: { name: 'Arsenal', logo: null },
         away: { name: 'Chelsea', logo: null },

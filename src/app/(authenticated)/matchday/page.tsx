@@ -59,7 +59,16 @@ type DramaPrediction = Pick<
   Tables<'predictions'>,
   'user_id' | 'fixture_id' | 'home_score' | 'away_score'
 >;
-type DramaScorerPick = Pick<Tables<'scorer_picks'>, 'fixture_id' | 'user_id' | 'player_name'>;
+type DramaScorerPick = Pick<
+  Tables<'scorer_picks'>,
+  | 'fixture_id'
+  | 'user_id'
+  | 'player_name'
+  | 'actual_first_scorer'
+  | 'is_correct'
+  | 'points_awarded'
+  | 'resolved_at'
+>;
 type DramaReaction = Pick<Tables<'match_reactions'>, 'fixture_id' | 'reaction'>;
 type MiniLeague = Pick<Tables<'mini_leagues'>, 'id' | 'name' | 'invite_code' | 'created_by'>;
 type MiniLeagueMember = Pick<Tables<'mini_league_members'>, 'mini_league_id' | 'user_id'>;
@@ -141,7 +150,9 @@ export default async function MatchdayPage() {
     fixtureIds.length
       ? admin
           .from('scorer_picks')
-          .select('fixture_id, user_id, player_name')
+          .select(
+            'fixture_id, user_id, player_name, actual_first_scorer, is_correct, points_awarded, resolved_at',
+          )
           .in('fixture_id', fixtureIds)
       : Promise.resolve({ data: [] }),
     fixtureIds.length
@@ -179,6 +190,15 @@ export default async function MatchdayPage() {
   const currentPick = scorerPicks.find(
     (pick) => pick.user_id === user.id && pick.fixture_id === upcomingFixture?.id,
   );
+  const goldenBootPicks = scorerPicks.filter((pick) => pick.user_id === user.id);
+  const goldenBootPoints = goldenBootPicks.reduce((total, pick) => total + pick.points_awarded, 0);
+  const latestGoldenBootResult = [...goldenBootPicks]
+    .filter((pick) => pick.resolved_at)
+    .sort((left, right) => {
+      const leftFixture = fixtureById.get(left.fixture_id);
+      const rightFixture = fixtureById.get(right.fixture_id);
+      return (rightFixture?.kickoff_time ?? '').localeCompare(leftFixture?.kickoff_time ?? '');
+    })[0];
   const earnedBadges = badgesResult.data ?? [];
 
   const completedRecords: CompletedRecord[] = scoreRecords
@@ -414,8 +434,24 @@ export default async function MatchdayPage() {
             </p>
           )}
           <p className="mt-3 text-caption text-text-tertiary">
-            Pick locks at kickoff. Scorer-event resolution is ready for the next provider upgrade.
+            Pick locks at kickoff. A correct first scorer earns 1 Golden Boot point, separate from
+            the main leaderboard. You have {goldenBootPoints} Golden Boot point
+            {goldenBootPoints === 1 ? '' : 's'}.
           </p>
+          {latestGoldenBootResult ? (
+            <p
+              className={cn(
+                'mt-2 text-caption',
+                latestGoldenBootResult.is_correct ? 'text-success' : 'text-text-secondary',
+              )}
+            >
+              {latestGoldenBootResult.is_correct
+                ? `✓ ${latestGoldenBootResult.player_name} was correct.`
+                : latestGoldenBootResult.actual_first_scorer
+                  ? `Last result: ${latestGoldenBootResult.actual_first_scorer} scored first.`
+                  : 'Last result: no goals were scored.'}
+            </p>
+          ) : null}
         </Card>
         <Card>
           <CardHeader>

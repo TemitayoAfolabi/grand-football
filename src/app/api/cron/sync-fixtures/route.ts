@@ -6,6 +6,7 @@ import {
   type ProviderFixture,
 } from '@/lib/server/api-football';
 import { fetchFootballDataFixtures } from '@/lib/server/football-data';
+import { resolveGoldenBootPicks } from '@/lib/server/golden-boot';
 import {
   FIXTURE_STATUS,
   FULL_SYNC_INTERVAL_MS,
@@ -283,6 +284,20 @@ export async function POST(request: NextRequest) {
       scoresCalculated += data ?? 0;
     }
 
+    // API-Football's date + event endpoints remain available on the current
+    // plan, so they can resolve scorer picks even when football-data.org was
+    // used for the primary score sync. A temporary scorer-event failure must
+    // never prevent the core fixture and leaderboard sync from succeeding.
+    let goldenBoot = { resolved: 0, correct: 0 };
+    try {
+      goldenBoot = await resolveGoldenBootPicks({ supabase, seasonId: season.id });
+    } catch (goldenBootError) {
+      console.warn(
+        'Golden Boot resolution failed; it will retry on the next sync',
+        goldenBootError,
+      );
+    }
+
     await logSync(supabase, mode, 'success', startTime, {
       fixtures_updated: synced,
       scores_calculated: scoresCalculated,
@@ -295,6 +310,7 @@ export async function POST(request: NextRequest) {
       mappedLegacyFixtures,
       newlyFinished: newlyFinished.length,
       scoresCalculated,
+      goldenBoot,
       seasonId: season.id,
     });
   } catch (err) {

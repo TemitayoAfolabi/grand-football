@@ -31,6 +31,7 @@ interface ApiFootballFixture {
     };
   };
   league: {
+    id: number;
     round: string | null;
   };
   teams: {
@@ -45,6 +46,19 @@ interface ApiFootballFixture {
 
 interface ApiFootballResponse {
   response?: ApiFootballFixture[];
+  errors?: Record<string, string> | string[];
+}
+
+interface ApiFootballEvent {
+  time: { elapsed: number | null; extra: number | null };
+  type: string;
+  detail: string;
+  team: { name: string };
+  player: { name: string | null };
+}
+
+interface ApiFootballEventsResponse {
+  response?: ApiFootballEvent[];
   errors?: Record<string, string> | string[];
 }
 
@@ -81,6 +95,21 @@ export function isLiveProviderFixture(fixture: ProviderFixture): boolean {
 export function getApiFootballGameweek(round: string | null): number | null {
   const match = round?.match(/(\d+)\s*$/);
   return match ? Number(match[1]) : null;
+}
+
+function teamKey(team: string) {
+  return team
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\b(?:afc|fc)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function hasApiFootballErrors(errors: ApiFootballResponse['errors']) {
+  return Array.isArray(errors)
+    ? errors.length > 0
+    : Boolean(errors && Object.keys(errors).length > 0);
 }
 
 export function mapApiFootballFixture(fixture: ApiFootballFixture): ProviderFixture | null {
@@ -153,11 +182,85 @@ export async function fetchApiFootballFixtures({
   }
 
   const payload = (await response.json()) as ApiFootballResponse;
-  if (payload.errors && Object.keys(payload.errors).length > 0) {
+  if (hasApiFootballErrors(payload.errors)) {
     throw new Error('API-Football returned an error response');
   }
 
   return (payload.response ?? [])
     .map(mapApiFootballFixture)
     .filter((fixture): fixture is ProviderFixture => fixture !== null);
+}
+
+/**
+ * The free API-Football plan allows date lookups for the current season even
+ * when the league + season fixture feed is unavailable. We use it solely to
+ * map a football-data.org fixture to API-Football's scorer-event fixture ID.
+ */
+export async function findApiFootballFixtureId({
+  date,
+  homeTeam,
+  awayTeam,
+}: {
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+}): Promise<number | null> {
+  const apiKey = process.env.API_FOOTBALL_API_KEY;
+  if (!apiKey) throw new Error('API_FOOTBALL_API_KEY not configured');
+
+  const baseUrl = process.env.API_FOOTBALL_BASE_URL ?? DEFAULT_API_FOOTBALL_BASE_URL;
+  const url = new URL(`${baseUrl}/fixtures`);
+  url.searchParams.set('date', date);
+  const response = await fetch(url, {
+    headers: { 'x-apisports-key': apiKey },
+    cache: 'no-store',
+  });
+  if (!response.ok)
+    throw new Error(`API-Football fixture lookup responded with ${response.status}`);
+
+  const payload = (await response.json()) as ApiFootballResponse;
+  if (hasApiFootballErrors(payload.errors)) throw new Error('API-Football fixture lookup failed');
+
+  const match = (payload.response ?? []).find(
+    (fixture) =>
+      fixture.league.id === API_FOOTBALL_PREMIER_LEAGUE_ID &&
+      teamKey(fixture.teams.home.name) === teamKey(homeTeam) &&
+      teamKey(fixture.teams.away.name) === teamKey(awayTeam),
+  );
+  return match?.fixture.id ?? null;
+}
+
+/** Returns the verified first scorer, or null for a completed goalless match. */
+export async function fetchApiFootballFirstScorer(fixtureId: number): Promise<string | null> {
+  const apiKey = process.env.API_FOOTBALL_API_KEY;
+  if (!apiKey) throw new Error('API_FOOTBALL_API_KEY not configured');
+
+  const baseUrl = process.env.API_FOOTBALL_BASE_URL ?? DEFAULT_API_FOOTBALL_BASE_URL;
+  const url = new URL(`${baseUrl}/fixtures/events`);
+  url.searchParams.set('fixture', String(fixtureId));
+  const response = await fetch(url, {
+    headers: { 'x-apisports-key': apiKey },
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error(`API-Football events responded with ${response.status}`);
+
+  const payload = (await response.json()) as ApiFootballEventsResponse;
+  if (hasApiFootballErrors(payload.errors)) throw new Error('API-Football events lookup failed');
+
+  return (
+    (payload.response ?? [])
+      .filter(
+        (event) =>
+          event.type === 'Goal' &&
+          event.detail !== 'Missed Penalty' &&
+          event.detail !== 'Goal cancelled' &&
+          Boolean(event.player.name),
+      )
+      .sort(
+        (left, right) =>
+          (left.time.elapsed ?? Number.MAX_SAFE_INTEGER) -
+            (right.time.elapsed ?? Number.MAX_SAFE_INTEGER) ||
+          (left.time.extra ?? 0) - (right.time.extra ?? 0),
+      )[0]?.player.name ?? null
+  );
 }
