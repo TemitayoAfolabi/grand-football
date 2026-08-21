@@ -11,7 +11,7 @@ type League = {
   name: string;
   inviteCode: string;
   memberCount: number;
-  leaders: Array<{ displayName: string; totalPoints: number; rank: number }>;
+  standings: Array<{ userId: string; displayName: string; totalPoints: number; rank: number }>;
 };
 
 export function MiniLeagues({ leagues }: { leagues: League[] }) {
@@ -71,16 +71,24 @@ export function MiniLeagues({ leagues }: { leagues: League[] }) {
                   {copiedCode === league.inviteCode ? 'Copied' : league.inviteCode}
                 </button>
               </div>
-              <p className="mt-2 text-caption text-text-tertiary">
-                {league.leaders.length
-                  ? league.leaders
-                      .map(
-                        (leader) =>
-                          `${leader.displayName} · ${leader.totalPoints} pts (overall #${leader.rank})`,
-                      )
-                      .join('  ·  ')
-                  : 'Waiting for the first confirmed scores.'}
-              </p>
+              {league.standings.length ? (
+                <ol className="mt-3 space-y-1 text-caption text-text-secondary">
+                  {league.standings.map((entry) => (
+                    <li key={entry.userId} className="flex items-center justify-between gap-3">
+                      <span className="truncate">
+                        #{entry.rank} {entry.displayName}
+                      </span>
+                      <span className="shrink-0 font-semibold text-text-primary">
+                        {entry.totalPoints} pts
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="mt-2 text-caption text-text-tertiary">
+                  Waiting for the first confirmed scores.
+                </p>
+              )}
             </div>
           ))}
         </div>

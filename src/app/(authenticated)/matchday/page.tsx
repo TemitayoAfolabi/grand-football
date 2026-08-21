@@ -20,8 +20,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
-import { saveScorerPick, sendMatchReaction } from './actions';
+import { sendMatchReaction } from './actions';
 import { MiniLeagues } from './mini-leagues';
+import { MatchdayLiveRefresh } from './matchday-live-refresh';
+import { ScorerPick } from './scorer-pick';
 
 export const metadata = { title: 'Matchday Drama' };
 export const dynamic = 'force-dynamic';
@@ -166,7 +168,9 @@ export default async function MatchdayPage() {
     leaderboard.find((entry) => entry.rank === (userEntry?.rank ?? 0) - 1) ??
     leaderboard.find((entry) => entry.rank === (userEntry?.rank ?? 0) + 1) ??
     null;
-  const liveFixtures = fixtures.filter((fixture) => ['IN_PLAY', 'PAUSED'].includes(fixture.status));
+  const liveFixtures = fixtures.filter((fixture) =>
+    ['IN_PLAY', 'PAUSED', 'HALFTIME'].includes(fixture.status),
+  );
   const upcomingFixture = fixtures.find(
     (fixture) =>
       new Date(fixture.kickoff_time) > new Date() &&
@@ -251,6 +255,7 @@ export default async function MatchdayPage() {
 
   return (
     <div className="space-y-6">
+      <MatchdayLiveRefresh />
       <header className="flex flex-col gap-2 tablet:flex-row tablet:items-end tablet:justify-between">
         <div>
           <p className="text-caption font-semibold uppercase tracking-[0.16em] text-accent">
@@ -398,25 +403,11 @@ export default async function MatchdayPage() {
             <Badge variant="star">Optional</Badge>
           </CardHeader>
           {upcomingFixture ? (
-            <form
-              action={saveScorerPick}
-              className="flex flex-col gap-3 tablet:flex-row tablet:items-end"
-            >
-              <input type="hidden" name="fixtureId" value={upcomingFixture.id} />
-              <label className="flex-1 text-body-sm text-text-secondary">
-                First scorer for {compactName(upcomingFixture.home_team)} v{' '}
-                {compactName(upcomingFixture.away_team)}
-                <input
-                  name="playerName"
-                  defaultValue={currentPick?.player_name ?? ''}
-                  placeholder="e.g. Bukayo Saka"
-                  className="mt-1 w-full rounded-input border border-border bg-bg-primary px-3 py-2 text-text-primary"
-                />
-              </label>
-              <button className="rounded-input bg-accent px-4 py-2 font-semibold text-text-inverse">
-                Lock pick
-              </button>
-            </form>
+            <ScorerPick
+              fixtureId={upcomingFixture.id}
+              fixtureLabel={`${compactName(upcomingFixture.home_team)} v ${compactName(upcomingFixture.away_team)}`}
+              currentPick={currentPick?.player_name ?? ''}
+            />
           ) : (
             <p className="text-body-sm text-text-secondary">
               The next fixture will unlock a scorer pick.
@@ -459,20 +450,20 @@ export default async function MatchdayPage() {
               const memberIds = leagueMemberships
                 .filter((member) => member.mini_league_id === league.id)
                 .map((member) => member.user_id);
-              const leaders = leaderboard
+              const standings = leaderboard
                 .filter((entry) => memberIds.includes(entry.user_id))
-                .slice(0, 3)
-                .map((entry) => ({
+                .map((entry, index) => ({
+                  userId: entry.user_id,
                   displayName: entry.display_name,
                   totalPoints: entry.total_points,
-                  rank: entry.rank,
+                  rank: index + 1,
                 }));
               return {
                 id: league.id,
                 name: league.name,
                 inviteCode: league.invite_code,
                 memberCount: memberIds.length,
-                leaders,
+                standings,
               };
             })}
           />

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import type { MiniLeagueActionState } from './mini-league-state';
+import type { MiniLeagueActionState, ScorerPickActionState } from './mini-league-state';
 
 async function requireUser() {
   const supabase = createClient();
@@ -116,11 +116,17 @@ export async function joinMiniLeague(
   return { status: 'success', message: `You are in ${league.name}.` };
 }
 
-export async function saveScorerPick(formData: FormData): Promise<void> {
+export async function saveScorerPick(
+  _previousState: ScorerPickActionState,
+  formData: FormData,
+): Promise<ScorerPickActionState> {
   const user = await requireUser();
   const fixtureId = formString(formData, 'fixtureId');
   const playerName = formString(formData, 'playerName').trim();
-  if (!user || playerName.length < 2 || playerName.length > 60) return;
+  if (!user)
+    return { status: 'error', message: 'Please sign in again before locking a scorer pick.' };
+  if (playerName.length < 2 || playerName.length > 60)
+    return { status: 'error', message: 'Enter a player name between 2 and 60 characters.' };
 
   const admin = createAdminClient();
   const { data: fixture } = await admin
@@ -128,7 +134,9 @@ export async function saveScorerPick(formData: FormData): Promise<void> {
     .select('kickoff_time')
     .eq('id', fixtureId)
     .maybeSingle();
-  if (!fixture || new Date(fixture.kickoff_time) <= new Date()) return;
+  if (!fixture) return { status: 'error', message: 'That fixture is no longer available.' };
+  if (new Date(fixture.kickoff_time) <= new Date())
+    return { status: 'error', message: 'Scorer picks lock at kickoff.' };
   const { error } = await admin.from('scorer_picks').upsert(
     {
       fixture_id: fixtureId,
@@ -138,9 +146,11 @@ export async function saveScorerPick(formData: FormData): Promise<void> {
     },
     { onConflict: 'fixture_id,user_id' },
   );
-  if (error) return;
+  if (error)
+    return { status: 'error', message: 'We could not save that scorer pick. Please try again.' };
   revalidatePath('/matchday');
   revalidatePath('/fixtures');
+  return { status: 'success', message: `${playerName} is locked in.` };
 }
 
 export async function sendMatchReaction(formData: FormData): Promise<void> {
@@ -150,6 +160,13 @@ export async function sendMatchReaction(formData: FormData): Promise<void> {
   if (!user || !['called_it', 'robbed', 'how'].includes(reaction)) return;
 
   const admin = createAdminClient();
+  const { data: fixture } = await admin
+    .from('fixtures')
+    .select('status')
+    .eq('id', fixtureId)
+    .maybeSingle();
+  if (!fixture || !['IN_PLAY', 'PAUSED', 'HALFTIME'].includes(fixture.status)) return;
+
   const { error } = await admin
     .from('match_reactions')
     .upsert(
