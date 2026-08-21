@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { redirect } from 'next/navigation';
-import { Award, ChevronRight, Target, Trophy, TrendingUp } from 'lucide-react';
+import { Award, ChevronRight, Sparkles, Target, Trophy, TrendingUp } from 'lucide-react';
 import { StatCard } from '@/components/stat-card';
 import { StarManCard } from '@/components/star-man-card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -88,6 +89,19 @@ export default async function DashboardPage() {
           <span className="text-body font-medium text-text-primary">My Prediction History</span>
         </div>
         <ChevronRight className="h-4 w-4 text-text-tertiary" aria-hidden="true" />
+      </Link>
+
+      <Link
+        href={'/matchday' as Route}
+        className="flex items-center justify-between rounded-card border border-accent/30 bg-accent-muted px-4 py-3 transition-colors hover:bg-accent-muted/70"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-text-inverse">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+          </div>
+          <span className="text-body font-medium text-text-primary">Matchday Drama</span>
+        </div>
+        <ChevronRight className="h-4 w-4 text-accent" aria-hidden="true" />
       </Link>
 
       <Suspense fallback={null}>

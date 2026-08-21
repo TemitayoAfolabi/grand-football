@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
-import { Home, Calendar, Trophy, User, Shield, Award, LogOut } from 'lucide-react';
+import { Home, Calendar, Trophy, User, Shield, Award, LogOut, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Route } from 'next';
 import { signOut } from '@/app/(authenticated)/actions';
@@ -12,6 +12,7 @@ const items: { href: Route; label: string; Icon: typeof Home }[] = [
   { href: '/' as Route, label: 'Dashboard', Icon: Home },
   { href: '/fixtures' as Route, label: 'Fixtures', Icon: Calendar },
   { href: '/leaderboard' as Route, label: 'Leaderboard', Icon: Trophy },
+  { href: '/matchday' as Route, label: 'Drama', Icon: Sparkles },
   { href: '/badges' as Route, label: 'Badges', Icon: Award },
   { href: '/settings' as Route, label: 'Profile', Icon: User },
 ];
