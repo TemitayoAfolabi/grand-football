@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { FIXTURE_STATUS, MAX_USERS } from '@/lib/constants';
+import { FIXTURE_STATUS } from '@/lib/constants';
 
 export async function POST(request: NextRequest) {
   // 1. Verify CRON_SECRET
@@ -12,11 +12,29 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    // 2. Find FINISHED fixtures without complete score_records
-    const { data: finishedFixtures } = await supabase
+    // 2. Find finished fixtures in the active season without a complete score
+    // set. The expected count must be the actual profile count, not a fixed
+    // capacity limit, otherwise every run recalculates every fixture.
+    const { data: season, error: seasonError } = await supabase
+      .from('seasons')
+      .select('id')
+      .eq('is_active', true)
+      .single();
+    if (seasonError || !season) {
+      return NextResponse.json({ error: 'No active season found' }, { status: 404 });
+    }
+
+    const { count: profileCount, error: profileCountError } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true });
+    if (profileCountError) throw new Error(profileCountError.message);
+
+    const { data: finishedFixtures, error: fixturesError } = await supabase
       .from('fixtures')
       .select('id')
+      .eq('season_id', season.id)
       .eq('status', FIXTURE_STATUS.FINISHED);
+    if (fixturesError) throw new Error(fixturesError.message);
 
     if (!finishedFixtures || finishedFixtures.length === 0) {
       return NextResponse.json({ message: 'No finished fixtures found', calculated: 0 });
@@ -32,8 +50,8 @@ export async function POST(request: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('fixture_id', fixture.id);
 
-      // If score records are less than expected user count, recalculate
-      if ((count ?? 0) < MAX_USERS) {
+      // If score records are less than the actual user count, recalculate.
+      if ((count ?? 0) < (profileCount ?? 0)) {
         const { data } = await supabase.rpc('calculate_fixture_scores', {
           p_fixture_id: fixture.id,
         });

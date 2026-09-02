@@ -29,6 +29,8 @@ type StoredFixture = Pick<
   | 'gameweek'
   | 'home_team'
   | 'away_team'
+  | 'home_score'
+  | 'away_score'
 >;
 
 function isFinished(fixture: ProviderFixture) {
@@ -188,7 +190,7 @@ export async function POST(request: NextRequest) {
     const { data: existingFixtures, error: existingError } = await supabase
       .from('fixtures')
       .select(
-        'id, api_fixture_id, live_provider_fixture_id, status, manually_overridden, gameweek, home_team, away_team',
+        'id, api_fixture_id, live_provider_fixture_id, status, manually_overridden, gameweek, home_team, away_team, home_score, away_score',
       )
       .eq('season_id', season.id);
     if (existingError) throw new Error(existingError.message);
@@ -205,13 +207,18 @@ export async function POST(request: NextRequest) {
     let synced = 0;
     let scoresCalculated = 0;
     let mappedLegacyFixtures = 0;
-    const newlyFinished: string[] = [];
+    const fixturesToScore = new Set<string>();
+    const finishedFixtureIds = new Set<string>();
 
     for (const match of matches) {
       const existing =
         byProviderId.get(match.providerFixtureId) ??
         byFixtureKey.get(fixtureKey(match.gameweek, match.homeTeam, match.awayTeam));
       const wasNotFinished = existing?.status !== FIXTURE_STATUS.FINISHED;
+      const finalScoreChanged =
+        isFinished(match) &&
+        existing?.status === FIXTURE_STATUS.FINISHED &&
+        (existing.home_score !== match.homeScore || existing.away_score !== match.awayScore);
 
       if (existing?.manually_overridden) {
         if (isLiveProviderFixture(match) || isFinished(match)) {
@@ -247,16 +254,40 @@ export async function POST(request: NextRequest) {
           .single();
         if (error) throw new Error(error.message);
         synced++;
-        if (isFinished(match) && inserted) newlyFinished.push(inserted.id);
+        if (isFinished(match) && inserted) fixturesToScore.add(inserted.id);
         continue;
       }
 
-      if (existing && wasNotFinished && isFinished(match)) {
-        newlyFinished.push(existing.id);
+      if (existing && isFinished(match)) {
+        finishedFixtureIds.add(existing.id);
+        if (wasNotFinished || finalScoreChanged) {
+          fixturesToScore.add(existing.id);
+        }
       }
     }
 
-    for (const fixtureId of newlyFinished) {
+    // On match days, repair an incomplete score set returned by the date feed.
+    // This covers an interrupted run that wrote a final result before it could
+    // update the scores and leaderboard.
+    if (mode !== 'full' && finishedFixtureIds.size > 0) {
+      const { count: profileCount, error: profileCountError } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true });
+      if (profileCountError) throw new Error(profileCountError.message);
+
+      for (const fixtureId of finishedFixtureIds) {
+        const { count, error } = await supabase
+          .from('score_records')
+          .select('id', { count: 'exact', head: true })
+          .eq('fixture_id', fixtureId);
+        if (error) throw new Error(error.message);
+        if ((count ?? 0) < (profileCount ?? 0)) {
+          fixturesToScore.add(fixtureId);
+        }
+      }
+    }
+
+    for (const fixtureId of fixturesToScore) {
       const { data, error } = await supabase.rpc('calculate_fixture_scores', {
         p_fixture_id: fixtureId,
       });
@@ -288,7 +319,7 @@ export async function POST(request: NextRequest) {
       mode,
       synced,
       mappedLegacyFixtures,
-      newlyFinished: newlyFinished.length,
+      newlyFinished: fixturesToScore.size,
       scoresCalculated,
       goldenBoot,
       seasonId: season.id,

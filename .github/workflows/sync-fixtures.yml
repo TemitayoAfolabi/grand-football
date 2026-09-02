@@ -1,11 +1,9 @@
 name: Sync live fixtures
 
 on:
-  schedule:
-    # GitHub Actions schedules are UTC. Run throughout the day so a late
-    # fixture is also finalised after midnight; the endpoint applies its own
-    # 10-minute API throttle.
-    - cron: '*/5 * * * *'
+  # Supabase pg_cron is the production scheduler. GitHub Actions schedules on
+  # public repositories are best-effort and caused delayed live-score updates.
+  # Keep this workflow as an authenticated manual recovery tool only.
   workflow_dispatch:
 
 concurrency:
