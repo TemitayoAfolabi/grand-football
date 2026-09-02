@@ -171,7 +171,7 @@ SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 CRON_SECRET=<a-random-secret-for-cron-route-auth>
 ```
 
-> `CRON_SECRET` is used to authenticate calls to `/api/cron/*` routes. Set the same value in your Vercel environment and in any cron job configuration.
+> `CRON_SECRET` is used to authenticate calls to `/api/cron/*` routes. Set the same value in your Vercel environment and in the Supabase `pg_cron` job configuration.
 
 ---
 
@@ -310,4 +310,3 @@ npm run dev
 ```
 
 Avoid running parallel dev servers. `npm run dev` is pinned to port `3000`.
-
