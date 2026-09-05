@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
       { fixtures: [] },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          'Cache-Control': 'private, no-store',
         },
-      }
+      },
     );
   }
 
@@ -62,13 +62,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Short cache for live data - 10 seconds server cache, 30 seconds stale-while-revalidate
+  // Live data must not be served from a browser or CDN cache. Realtime is the
+  // fast path and the client uses this endpoint as its 30-second safety net.
   return NextResponse.json(
     { fixtures: fixtures ?? [] },
     {
       headers: {
-        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
+        'Cache-Control': 'private, no-store',
       },
-    }
+    },
   );
 }

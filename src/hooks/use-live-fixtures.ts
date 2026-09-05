@@ -19,17 +19,15 @@ export function useLiveFixtures(gameweek: number): UseLiveFixturesReturn {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const supabase = useRef(createClient()).current;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isConnectedRef = useRef(false);
 
-  useEffect(() => {
-    isConnectedRef.current = isConnected;
-  }, [isConnected]);
-
-  const fetchFallback = useCallback(async () => {
+  const fetchFixtures = useCallback(async () => {
     try {
-      // Fetch ALL fixtures for the gameweek (not just live) so we
-      // detect FINISHED transitions even when Realtime is disconnected
-      const res = await fetch(`/api/fixtures/live?gameweek=${gameweek}`);
+      // Realtime gives the quickest UI update. Polling remains active as a
+      // safety net so a missed Realtime event can never leave a live score
+      // stale in an otherwise connected browser.
+      const res = await fetch(`/api/fixtures/live?gameweek=${gameweek}`, {
+        cache: 'no-store',
+      });
       if (!res.ok) return;
       const data = (await res.json()) as { fixtures: Fixture[] };
       setFixtures(data.fixtures);
@@ -41,8 +39,8 @@ export function useLiveFixtures(gameweek: number): UseLiveFixturesReturn {
 
   const startPolling = useCallback(() => {
     if (pollRef.current) return;
-    pollRef.current = setInterval(() => void fetchFallback(), CLIENT_POLL_FALLBACK_MS as number);
-  }, [fetchFallback]);
+    pollRef.current = setInterval(() => void fetchFixtures(), CLIENT_POLL_FALLBACK_MS as number);
+  }, [fetchFixtures]);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -51,7 +49,8 @@ export function useLiveFixtures(gameweek: number): UseLiveFixturesReturn {
     }
   }, []);
 
-  // Initial fetch + Realtime subscription
+  // Realtime provides immediate updates; a 30-second poll remains active as
+  // an independent recovery path if the channel misses an event.
   useEffect(() => {
     const fetchAll = async () => {
       const { data: season } = await supabase
@@ -76,6 +75,8 @@ export function useLiveFixtures(gameweek: number): UseLiveFixturesReturn {
     };
 
     void fetchAll();
+    void fetchFixtures();
+    startPolling();
 
     const channel = supabase
       .channel(`fixtures-gw-${gameweek}`)
@@ -91,32 +92,22 @@ export function useLiveFixtures(gameweek: number): UseLiveFixturesReturn {
           if (payload.eventType === 'INSERT') {
             setFixtures((prev) => [...prev, payload.new]);
           } else if (payload.eventType === 'UPDATE') {
-            setFixtures((prev) =>
-              prev.map((f) => (f.id === payload.new.id ? payload.new : f)),
-            );
+            setFixtures((prev) => prev.map((f) => (f.id === payload.new.id ? payload.new : f)));
           } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-            setFixtures((prev) =>
-              prev.filter((f) => f.id !== (payload.old as Fixture).id),
-            );
+            setFixtures((prev) => prev.filter((f) => f.id !== (payload.old as Fixture).id));
           }
           setLastUpdated(new Date());
         },
       )
       .subscribe((status) => {
-        const connected = String(status) === 'SUBSCRIBED';
-        setIsConnected(connected);
-        if (!connected) {
-          startPolling();
-        } else {
-          stopPolling();
-        }
+        setIsConnected(String(status) === 'SUBSCRIBED');
       });
 
     return () => {
       stopPolling();
       void supabase.removeChannel(channel);
     };
-  }, [gameweek, supabase, startPolling, stopPolling]);
+  }, [gameweek, supabase, fetchFixtures, startPolling, stopPolling]);
 
   // Pause polling when tab is hidden, resume when visible
   useEffect(() => {
@@ -124,15 +115,13 @@ export function useLiveFixtures(gameweek: number): UseLiveFixturesReturn {
       if (document.hidden) {
         stopPolling();
       } else {
-        if (!isConnectedRef.current) {
-          startPolling();
-          void fetchFallback();
-        }
+        startPolling();
+        void fetchFixtures();
       }
     };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
-  }, [startPolling, stopPolling, fetchFallback]);
+  }, [startPolling, stopPolling, fetchFixtures]);
 
   return { fixtures, isConnected, lastUpdated };
 }
