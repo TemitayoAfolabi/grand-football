@@ -19,6 +19,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
 type SyncMode = 'live' | 'match_day' | 'full' | 'skipped';
+// Supabase pg_cron starts on exact minute boundaries, while an HTTP sync can
+// finish several seconds later. Without a small allowance, the following
+// 10-minute invocation is incorrectly considered too early and gets skipped.
+const SCHEDULER_DRIFT_TOLERANCE_MS = 30_000;
 type StoredFixture = Pick<
   Database['public']['Tables']['fixtures']['Row'],
   | 'id'
@@ -167,9 +171,10 @@ export async function POST(request: NextRequest) {
       .single();
     if (lastSync) {
       const elapsed = Date.now() - new Date(lastSync.ran_at).getTime();
-      if (elapsed < intervalMs) {
+      const minimumElapsedMs = Math.max(0, intervalMs - SCHEDULER_DRIFT_TOLERANCE_MS);
+      if (elapsed < minimumElapsedMs) {
         await logSync(supabase, 'skipped', 'success', startTime);
-        return NextResponse.json({ mode: 'skipped', elapsed, intervalMs });
+        return NextResponse.json({ mode: 'skipped', elapsed, intervalMs, minimumElapsedMs });
       }
     }
 
